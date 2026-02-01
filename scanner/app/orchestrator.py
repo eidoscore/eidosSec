@@ -10,6 +10,7 @@ from app.tools.semgrep import SemgrepWrapper
 from app.tools.bandit import BanditWrapper
 from app.tools.eslint import EslintWrapper
 from app.tools.phpstan import PhpstanWrapper
+from app.tools.brakeman import BrakemanWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -25,6 +26,7 @@ class ScanOrchestrator:
             TrivyWrapper(project_path),
             EslintWrapper(project_path),
             PhpstanWrapper(project_path),
+            BrakemanWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
