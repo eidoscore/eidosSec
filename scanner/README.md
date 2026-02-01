@@ -1,42 +1,104 @@
-# Scanner Worker
+# eidosSec Scanner
 
-**Purpose:** Executes security tools and reports results back to the backend.
+AI-powered security scanner with 50+ tools (currently: 5 tools for FREE tier).
 
-## Current Status
+## Current Tools (Week 3-4)
 
-This is a **skeleton implementation** for Month 1 Week 1-2 infrastructure setup.
-
-Full scanner implementation with 50+ tools will be completed in:
-- **Month 1 Week 3-4:** First 5 tools (Semgrep, Bandit, TruffleHog, Gitleaks, Trivy)
-- **Month 2:** Additional 10 tools for FREE tier (total 15 tools)
-- **Month 5:** 35 more tools for PRO tier (total 50+ tools)
+1. **Semgrep** - Multi-language SAST
+2. **Bandit** - Python security linter  
+3. **TruffleHog** - Secrets detection
+4. **Gitleaks** - Git secrets scanner
+5. **Trivy** - Dependency vulnerability scanner (SCA)
 
 ## Architecture
 
 ```
-Scanner Worker
-├── Tool Wrappers (one per security tool)
-│   ├── Semgrep
-│   ├── Bandit
-│   ├── TruffleHog
-│   └── ...
-├── Orchestrator (sequential/parallel execution)
-├── Deduplication Engine
-└── Results Publisher (Redis pub/sub)
+Scanner Worker (Celery)
+├── Orchestrator - Manages tool execution
+├── Tool Wrappers - Execute and parse tool outputs
+├── Detectors - Detect languages/frameworks
+└── Redis Pub/Sub - Real-time progress updates
 ```
 
-## Future Tool Categories
+## Usage
 
-1. **SAST (15 tools):** Semgrep, CodeQL, Bandit, Brakeman, ESLint, PHPStan...
-2. **DAST (7 tools):** OWASP ZAP, Nuclei, Wapiti, Nikto...
-3. **SCA (8 tools):** Trivy, Grype, npm audit, pip-audit...
-4. **Secrets (5 tools):** TruffleHog, Gitleaks, detect-secrets...
-5. **Container (3 tools):** Trivy, Dockle, Hadolint
-6. **IaC (4 tools):** Checkov, Terrascan, tfsec, Kics
-7. **API Security (3 tools):** Nuclei API, FFUF, Postman Newman
+### Via Docker Compose
 
-## Current Docker Image
+```bash
+# Start scanner worker
+docker-compose up -d scanner
 
-For Week 1-2, the Docker image is a minimal Ubuntu + Python setup.
+# Check worker logs
+docker-compose logs -f scanner
+```
 
-Full tool installation happens in Week 3-4.
+### Run Tests
+
+```bash
+cd scanner
+pytest tests/ -v --cov=app
+```
+
+### Trigger Scan (from Python)
+
+```python
+from app.tasks import scan_project
+
+# Async scan
+result = scan_project.delay("/path/to/project", "scan-uuid")
+
+# Get result
+findings = result.get(timeout=300)
+```
+
+## Adding New Tools (Future)
+
+1. Create wrapper in `app/tools/{tool_name}.py`
+2. Inherit from `ToolWrapper`  
+3. Implement `name`, `command`, `parse_output()`
+4. Add to `ScanOrchestrator.all_tools`
+5. Update Dockerfile with tool installation
+
+## Tool Categories
+
+- **SAST** (Static Analysis): Semgrep, Bandit
+- **Secrets**: TruffleHog, Gitleaks
+- **SCA** (Dependencies): Trivy
+- **DAST** (Coming in Month 2+)
+- **Container Security** (Coming in Month 5+)
+- **IaC Security** (Coming in Month 5+)
+
+## Configuration
+
+Environment variables:
+- `REDIS_URL` - Redis connection (default: redis://redis:6379/0)
+- `DATABASE_URL` - PostgreSQL connection
+- `LOG_LEVEL` - Logging level (default: INFO)
+
+## Development
+
+Install dependencies:
+```bash
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+```
+
+Run tests:
+```bash
+pytest tests/ -v
+```
+
+Run worker locally:
+```bash
+celery -A worker worker --loglevel=info
+```
+
+## Next Steps (Month 2)
+
+Adding 10 more tools for FREE tier:
+- ESLint, PHPStan, Brakeman (SAST)
+- Safety, npm audit, Composer audit (SCA)
+- OWASP ZAP, Nuclei (DAST)
+- cfn-nag, Checkov (IaC)
+
+**Total after Month 2: 15 tools**

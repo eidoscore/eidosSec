@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.database import close_db
-from app.api.v1 import health
+from app.api.v1 import health, projects, scans
 
 # Configure logging
 logging.basicConfig(
@@ -18,50 +18,41 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle manager for startup and shutdown"""
+    """Lifespan events"""
     # Startup
-    logger.info(f"Starting {settings.APP_NAME} v{settings.VERSION}")
-    logger.info(f"Environment: {settings.ENVIRONMENT}")
+    logger.info("Starting up eidosSec backend...")
     yield
     # Shutdown
-    logger.info("Shutting down application")
+    logger.info("Shutting down...")
     await close_db()
 
 
 # Create FastAPI application
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.VERSION,
+    title="eidosSec API",
+    version="0.1.0",
     description="AI-Powered Security Scanner with 50+ Tools",
-    lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include routers
-app.include_router(health.router, prefix="/api/v1", tags=["Health"])
+app.include_router(health.router, prefix="/api/v1")
+app.include_router(projects.router, prefix="/api/v1")
+app.include_router(scans.router, prefix="/api/v1")
 
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
-        "name": settings.APP_NAME,
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
-        "docs": "/docs" if settings.DEBUG else "disabled",
-    }
-
-
 @app.get("/health")
 async def root_health():
     """Root health check (redirects to /api/v1/health)"""

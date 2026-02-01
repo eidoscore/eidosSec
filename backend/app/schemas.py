@@ -1,8 +1,9 @@
 """Pydantic schemas for request/response validation"""
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
+from enum import Enum
 
 
 # Health Check Schemas
@@ -15,16 +16,37 @@ class HealthResponse(BaseModel):
 
 
 # Project Schemas
-class ProjectBase(BaseModel):
-    """Base project schema"""
+class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    path: str = Field(..., pattern=r'^/.*')
-    framework: Optional[str] = Field(None, max_length=100)
+    path: str = Field(..., description="Absolute path to project directory")
+    languages: Optional[List[str]] = None
+    framework: Optional[str] = None
+    settings: Optional[Dict[str, Any]] = None
 
 
-class ProjectCreate(ProjectBase):
-    """Schema for creating a project"""
-    pass
+class ProjectResponse(BaseModel):
+    id: UUID
+    name: str
+    path: str
+    languages: List[str]
+    framework: Optional[str]
+    settings: Dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectListResponse(BaseModel):
+    id: UUID
+    name: str
+    path: str
+    languages: List[str]
+    framework: Optional[str]
+    created_at: datetime
+    scans_count: int
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectUpdate(BaseModel):
@@ -35,60 +57,76 @@ class ProjectUpdate(BaseModel):
     settings: Optional[Dict[str, Any]] = None
 
 
-class ProjectResponse(ProjectBase):
-    """Schema for project response"""
-    id: UUID
-    languages: List[str]
-    settings: Dict[str, Any]
-    created_at: datetime
-    updated_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
-
-
 # Scan Schemas
+class ScanMode(str, Enum):
+    QUICK = "quick"
+    DEEP = "deep"
+    CUSTOM = "custom"
+
+
 class ScanCreate(BaseModel):
-    """Schema for creating a scan"""
     project_id: UUID
-    mode: str = Field(..., pattern=r'^(quick|deep|custom)$')
+    mode: ScanMode = ScanMode.QUICK
 
 
 class ScanResponse(BaseModel):
-    """Schema for scan response"""
     id: UUID
     project_id: UUID
     mode: str
     status: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    duration_seconds: Optional[int] = None
-    score: Optional[float] = None
+    completed_at: Optional[datetime]
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScanListResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    mode: str
+    status: str
+    started_at: datetime
+    completed_at: Optional[datetime]
+    score: Optional[float]
+    findings_count: int
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScanDetailResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    mode: str
+    status: str
+    started_at: datetime
+    completed_at: Optional[datetime]
+    duration_seconds: Optional[int]
+    score: Optional[float]
     summary: Dict[str, Any]
     tools_executed: List[str]
-    error_message: Optional[str] = None
+    error_message: Optional[str]
+    findings: List['FindingResponse'] # Forward reference
     
     model_config = ConfigDict(from_attributes=True)
 
 
 # Finding Schemas
-class FindingResponse(BaseModel):
-    """Schema for finding response"""
-    id: UUID
-    scan_id: UUID
+class FindingBase(BaseModel):
     type: str
     severity: str
     confidence: int
     file_path: str
     line_start: int
     line_end: int
-    code_snippet: Optional[str] = None
     message: str
+    code_snippet: Optional[str] = None
     cwe_id: Optional[str] = None
     owasp_category: Optional[str] = None
-    detected_by_tools: List[str]
-    raw_outputs: Dict[str, Any]
-    status: str
-    assigned_to: Optional[str] = None
+
+
+class FindingResponse(FindingBase):
+    id: UUID
+    scan_id: UUID
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
