@@ -64,12 +64,15 @@ jobs:
       - name: Report build failure
         if: failure()
         run: |
+          # Capture last 20 lines of log, escape quotes for JSON
+          ERROR_LOG=$(tail -n 20 scanner/build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
           curl -X PATCH http://localhost:9000/api/builds/${{ github.sha }} \
             -H "Content-Type: application/json" \
             -d "{
               \"status\": \"failed\",
               \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-              \"error\": \"Build failed - check logs\"
+              \"error\": \"$ERROR_LOG\"
             }" || true
             
       - name: Cleanup old images
