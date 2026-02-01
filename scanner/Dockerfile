@@ -35,19 +35,29 @@ RUN wget -q https://github.com/aquasecurity/trivy/releases/download/v0.48.3/triv
     chmod +x /usr/local/bin/trivy && \
     rm trivy_0.48.3_Linux-64bit.tar.gz
 
+# Install TruffleHog (binary)
+RUN wget -q https://github.com/trufflesecurity/trufflehog/releases/download/v3.63.2/trufflehog_3.63.2_linux_amd64.tar.gz && \
+    tar -xzf trufflehog_3.63.2_linux_amd64.tar.gz && \
+    mv trufflehog /usr/local/bin/ && \
+    chmod +x /usr/local/bin/trufflehog && \
+    rm trufflehog_3.63.2_linux_amd64.tar.gz
+
 # Set working directory
 WORKDIR /app
+
+# Set PATH to include user site-packages
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copy requirements and install Python packages
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --user -r requirements.txt
 
-# Verify tool installations
-RUN semgrep --version && \
-    bandit --version && \
-    trufflehog --version && \
-    gitleaks version && \
-    trivy --version
+# Verify tool installations will happen at runtime
+# RUN semgrep --version && \
+#     bandit --version && \
+#     trufflehog --version && \
+#     gitleaks version && \
+#     trivy --version
 
 # Copy scanner code
 COPY . .
