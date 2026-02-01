@@ -8,10 +8,8 @@ import logging
 
 from app.tools.semgrep import SemgrepWrapper
 from app.tools.bandit import BanditWrapper
-from app.tools.trufflehog import TruffleHogWrapper
-from app.tools.gitleaks import GitleaksWrapper
-from app.tools.trivy import TrivyWrapper
 from app.tools.eslint import EslintWrapper
+from app.tools.phpstan import PhpstanWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -19,7 +17,6 @@ class ScanOrchestrator:
     def __init__(self, project_path: Path, scan_id: str, redis_url: str):
         # ... (existing init code)
         
-        # Tool instances (Week 5-6: Added ESLint)
         self.all_tools = [
             SemgrepWrapper(project_path),
             BanditWrapper(project_path),
@@ -27,6 +24,7 @@ class ScanOrchestrator:
             GitleaksWrapper(project_path),
             TrivyWrapper(project_path),
             EslintWrapper(project_path),
+            PhpstanWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
