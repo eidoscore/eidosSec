@@ -1379,493 +1379,454 @@ Example: "Add Project" wizard
 
 
 
-9. Business Model
-9.1 Monetization Strategy
-Phase 1: Free & Open Source (Year 1-2)
-Objective: Build user base, establish credibility, gather feedback
-Revenue: $0 (intentionally)
-Costs Covered By:
-
-Personal funding (founders)
-Open-source grants (e.g., GitHub Sponsors, OpenCollective)
-Donations from users and companies benefiting from eidosSec
-
-Value Delivered:
-
-100% free platform
-All 50+ tools included
-No limitations, no paywalls
-Full source code access (AGPLv3 license)
-
-User Acquisition:
-
-Organic (GitHub stars, word-of-mouth)
-Technical content (blog posts, tutorials, conference talks)
-Open-source community engagement
-
-Success Metrics:
-
-10,000+ GitHub stars
-1,000+ active users (monthly scans)
-50+ contributors
-Featured on Product Hunt, Hacker News
-
-
-Phase 2: Freemium with Support (Year 2-3)
-Objective: Sustainable revenue to fund development, while keeping core free
-Free Tier (Unchanged):
-
-All features from Phase 1
-Self-hosted via Docker Compose
-Community support (GitHub Discussions, Discord)
-
-Paid Tier - "eidosSec Pro Support" ($99/month or $999/year per organization)
-What's Included:
-
-Priority Support:
-
-Email/Slack support with 4-hour response SLA
-Dedicated Slack channel
-Monthly office hours with core team
-
-
-Onboarding Assistance:
-
-1-hour setup call
-Custom configuration help
-Integration support (CI/CD, Jira, Slack)
-
-
-Training:
-
-Team training sessions (up to 10 people)
-Access to exclusive webinars
-Early access to new features (beta program)
-
-
-Compliance Assistance:
-
-Help with audit preparation
-Custom compliance report templates
-Letter of attestation for auditors
-
-
-
-What's NOT Included (Stays Free):
-
-Core software (still 100% free, open-source)
-All 50+ tools
-All features (no feature gates)
-
-Target Customers:
-
-Small/mid-size companies (10-100 developers)
-Companies in regulated industries (fintech, healthcare, government)
-Teams without dedicated DevOps/security staff
-
-Expected Revenue:
-
-50 customers @ $999/year = $50K ARR (Year 2)
-200 customers @ $999/year = $200K ARR (Year 3)
-
-
-Phase 3: Enterprise Offering (Year 3+)
-Objective: Serve large organizations with advanced needs
-Enterprise Tier - "eidosSec Enterprise" (Custom pricing, typically $10K-50K/year)
-What's Included (Everything from Pro Support +):
-1. Deployment Options:
-
-Kubernetes deployment support
-Helm charts with custom configurations
-Air-gapped environment support (no internet required)
-Multi-tenant architecture (shared infrastructure, isolated data)
-
-2. Enterprise Features:
-
-SSO/LDAP Integration: Active Directory, Okta, Azure AD
-RBAC (Role-Based Access Control): Admin, Security Lead, Developer, Viewer roles
-Advanced Audit Logging: Tamper-proof logs, SIEM integration (Splunk, ELK)
-Custom Branding: White-label UI with company logo/colors
-Advanced Reporting: Scheduled reports, custom dashboards, PowerBI/Tableau integration
-
-3. Professional Services:
-
-Custom Integrations: Integrate with proprietary tools, internal systems
-Custom Rules Development: Write company-specific security rules
-Training Programs: On-site training, certification program
-Dedicated Account Manager: Quarterly business reviews, roadmap input
-
-4. Service Level Agreements (SLA):
-
-99.5% uptime (for hosted version, future)
-1-hour response time for critical issues
-4-hour response for high priority
-Dedicated Slack channel with core team
-
-5. Legal & Compliance:
-
-Custom contracts (MSA, DPA)
-SOC 2 Type II attestation (when available)
-GDPR/HIPAA compliance assistance
-Vendor security questionnaire support
-
-Target Customers:
-
-Enterprises (500+ developers)
-Fortune 500 companies
-Government agencies
-Regulated industries (banking, healthcare, defense)
-
-Expected Revenue:
-
-10 customers @ $25K/year = $250K ARR (Year 3)
-50 customers @ $30K/year = $1.5M ARR (Year 5)
-
-
-Alternative Revenue Streams (Optional):
-1. Cloud-Hosted Version (SaaS) (Year 3+)
-
-Offering: Hosted eidosSec (users don't manage infrastructure)
-Privacy Model: End-to-end encrypted code (zero-knowledge architecture)
-Pricing: $29/user/month (Developer tier), $99/user/month (Team tier)
-Target: Small teams uncomfortable with self-hosting
-Challenge: Convincing users that hosted version is as private as self-hosted
-
-2. Marketplace (Community Plugins) (Year 2+)
-
-Offering: Paid plugins developed by community or eidosSec team
-Revenue Share: 70% to developer, 30% to eidosSec
-Examples:
-
-Industry-specific rule packs (fintech security rules: $49 one-time)
-Premium integrations (ServiceNow connector: $99/year)
-Advanced visualization plugins
-
-
-Benefit: Creates ecosystem, incentivizes community contributions
-
-3. Certification Program (Year 3+)
-
-Offering: "eidosSec Certified Secure Developer" badge
-Process: Online exam ($199), renew annually ($99)
-Value: Professional credential, resume booster
-Target: Individual developers seeking career advancement
-Revenue: 1,000 certifications/year = $199K
-
-4. Consulting Services (Year 2+)
-
-Offering: Security audits performed by eidosSec team
-Service: Manual code review + eidosSec automation
-Pricing: $10K-50K per engagement
-Target: Companies preparing for acquisition, IPO, major release
-Limitation: Not scalable, requires hiring security experts
-
-5. Training & Workshops (Year 2+)
-
-Offering: Public workshops, conference talks, corporate training
-Pricing: $500/person for public, $10K/day for corporate
-Topics: Secure coding, using eidosSec effectively, DevSecOps
-Revenue: 20 corporate trainings/year = $200K
-
-9.2 Licensing Strategy
-Core Software License: AGPLv3 (GNU Affero General Public License v3)
-Why AGPLv3?
-
-Copyleft: Any modifications must be open-sourced
-Network Use Clause: If someone hosts eidosSec as a service, they must release their source code
-Prevents SaaS Loophole: Companies can't create closed-source hosted versions without contributing back
-Community Protection: Ensures improvements benefit everyone
-
-What This Means for Users:
-
-Free to Use: Commercial and non-commercial use allowed
-Free to Modify: Can customize for internal use
-Must Share Changes: If distributing modified version, must release source code
-Can't Create Closed SaaS: Hosting as a service requires releasing modifications
-
-Exceptions (Dual Licensing for Enterprise):
-
-Commercial License Available: For companies wanting to create proprietary forks or SaaS without open-sourcing
-Pricing: Custom (typically $50K-500K one-time fee)
-Use Case: Rare (most enterprises comfortable with AGPLv3)
-
-Security Tools Licenses:
-
-All integrated tools are free/open-source with permissive licenses:
-
-MIT, Apache 2.0, BSD (majority)
-GPL (some, like ZAP)
-
-
-eidosSec acts as orchestrator, doesn't modify tool code
-Full license compliance documentation maintained
-
-Contributor License Agreement (CLA):
-
-Contributors sign CLA granting eidosSec rights to relicense contributions
-Enables potential future licensing flexibility (e.g., moving to more permissive license)
-Standard practice for open-source projects with commercial plans
-
-9.3 Go-To-Market Strategy
-Phase 1: Community Building (Months 1-6)
-Objective: Establish credibility, gather early adopters
-Tactics:
-
-GitHub Launch:
-
-Polished README with screenshots, GIFs
-Comprehensive documentation (installation, usage, troubleshooting)
-Issue templates, contribution guidelines
-"Good first issue" labels for contributors
-
-
-Developer Communities:
-
-Post on Hacker News, Reddit (r/programming, r/netsec, r/php, r/node)
-Dev.to articles (tutorial series)
-Medium/Substack blog
-Twitter/X presence (security tips, release announcements)
-
-
-Content Marketing:
-
-Blog Posts:
-
-"How We Built a Free Alternative to Snyk"
-"50+ Security Tools in One Platform: Architecture Deep Dive"
-"Real-World SQLi Detection: Comparing Semgrep vs. CodeQL vs. ZAP"
-
-
-Video Tutorials:
-
-YouTube channel (installation, walkthroughs, tips)
-Livestreams (security code reviews using eidosSec)
-
-
-
-
-Open Source Engagement:
-
-Contribute fixes to integrated tools (Semgrep, ZAP) to build relationships
-Sponsor open-source projects we depend on
-Attend/speak at open-source conferences (FOSDEM, All Things Open)
-
-
-
-Success Metrics:
-
-5,000 GitHub stars
-500 active users (monthly scans)
-10 contributors
-50 blog post shares
-
-
-Phase 2: Market Penetration (Months 7-18)
-Objective: Scale user base, establish thought leadership
-Tactics:
-
-Product Hunt Launch:
-
-Coordinate launch with major feature release
-Engage with comments, offer support
-Goal: #1 Product of the Day
-
-
-Conference Presence:
-
-Speaking:
-
-OWASP AppSec conferences (Global, USA, EU)
-Black Hat Briefings (Arsenal demos)
-DEF CON (demo labs, workshops)
-Local meetups (SecureNYC, BayThreat)
-
-
-Topics:
-
-"Democratizing Security Scanning"
-"Multi-Tool Validation: Reducing False Positives by 70%"
-"Privacy-First DevSecOps"
-
-
-
-
-Partnerships:
-
-Framework Communities: Integrate with Laravel docs, Django docs (list eidosSec as recommended security tool)
-Bootcamps: Partner with coding bootcamps to teach secure coding with eidosSec
-Tool Vendors: Collaborate with Semgrep, Trivy teams (joint blog posts, webinars)
-
-
-Influencer Outreach:
-
-Send personalized demos to security influencers (Troy Hunt, Tanya Janca, HackerSploit)
-Request reviews/mentions in their content
-Sponsor security podcasts (Darknet Diaries, Risky Business)
-
-
-Case Studies:
-
-Document successful user stories
-Examples:
-
-"How Startup X Found 50 Vulnerabilities Before Series A"
-"Open Source Project Y Reduced Security Issues 80%"
-
-
-Publish with user permission
-
-
-
-Success Metrics:
-
-20,000 GitHub stars
-5,000 active users
-100 contributors
-10 enterprise inquiries
-
-
-Phase 3: Enterprise Expansion (Months 19-36)
-Objective: Monetize, scale revenue
-Tactics:
-
-Enterprise Sales:
-
-Hire 2 enterprise sales reps
-Outbound to Fortune 500 security/engineering teams
-Attend enterprise conferences (RSA, Gartner Security Summit)
-Offer free POCs (proof of concept, 30-day trial with support)
-
-
-Channel Partners:
-
-Partner with DevOps consultancies (they recommend eidosSec to clients)
-Revenue share: 20% commission on deals they bring
-Co-marketing (joint webinars, white papers)
-
-
-Analyst Relations:
-
-Brief Gartner, Forrester analysts on eidosSec
-Goal: Mentioned in Magic Quadrant or Wave reports
-Provide data for market research
-
-
-Compliance Focus:
-
-Create compliance-specific landing pages (PCI-DSS, HIPAA, SOC 2)
-Offer compliance consulting as upsell
-Partner with compliance auditors (they recommend eidosSec, we recommend them)
-
-
-Hosted Version Launch:
-
-Launch cloud-hosted option for privacy-sensitive users
-End-to-end encryption (zero-knowledge architecture)
-Freemium model ($0 for individuals, $29/user/month for teams)
-
-
-
-Success Metrics:
-
-50,000 GitHub stars
-20,000 active users (self-hosted + cloud)
-$1M ARR
-50 enterprise customers
-Series A fundraising (optional)
-
-9.4 Cost Structure
-Fixed Costs (Annual):
-Infrastructure (Self-Hosted, Minimal):
-
-Domain & Hosting: $500/year (eidossec.com, documentation site)
-CDN: $1,000/year (Docker image distribution via Docker Hub)
-Email Service: $500/year (transactional emails for notifications)
-Total Infrastructure: $2,000/year
-
-Personnel (Year 1 - Founders Only):
-
-2 founders (unpaid initially, sweat equity)
-Opportunity cost: ~$300K/year (if they took jobs instead)
-
-Personnel (Year 2 - Small Team):
-
-2 founders: $120K/year each = $240K
-1 engineer: $100K/year
-1 designer/PM: $90K/year
-Total Salaries: $430K/year
-
-Personnel (Year 3 - Growing Team):
-
-2 founders: $150K/year each = $300K
-3 engineers: $120K/year each = $360K
-1 designer/PM: $100K/year
-2 sales reps: $80K base + commission = $160K + $100K commission
-1 support specialist: $70K/year
-Total Salaries: $1.09M/year
-
-Marketing (Year 2-3):
-
-Conference sponsorships: $50K/year
-Content creation (freelance writers): $20K/year
-Paid ads (Google, LinkedIn): $30K/year
-Swag (stickers, t-shirts): $10K/year
-Total Marketing: $110K/year
-
-Legal & Compliance (Year 2-3):
-
-Legal counsel (contracts, IP): $20K/year
-Accounting: $10K/year
-Insurance (E&O, D&O): $15K/year
-Total Legal: $45K/year
-
-Software & Tools:
-
-GitHub Team: $500/year
-Cloud infrastructure (CI/CD, backups): $5,000/year
-Design tools (Figma): $500/year
-Communication (Slack, Zoom): $1,000/year
-Total Software: $7,000/year
-
-Total Operating Costs:
-
-Year 1: $2K (infrastructure only, founders unpaid)
-Year 2: $600K (team salaries + marketing + overhead)
-Year 3: $1.25M (scaling team + marketing)
-
-Funding Strategy:
-Year 1: Bootstrapped
-
-Founders self-fund or use savings
-No external funding needed ($2K costs)
-
-Year 2: Grants + Small Seed
-
-Open-source grants: $50K (GitHub Sponsors, NLnet Foundation)
-Angel investors: $250K (10% equity)
-Total: $300K raised
-Covers: $430K salaries (shortfall covered by consulting revenue or founder loans)
-
-Year 3: Series A (Optional)
-
-Raise: $3M-5M
-Valuation: $15M-20M pre-money
-Use of funds:
-
-Hire 10 more engineers ($1.5M/year)
-Scale marketing ($500K/year)
-Build enterprise features ($500K one-time)
-Runway: 24 months
-
-
-
-Alternative (No VC):
-
-Bootstrap with revenue from Pro Support + Enterprise
-Year 2: $50K revenue
-Year 3: $500K revenue
-Year 4: $2M revenue (cashflow positive)
-Year 5: $5M revenue (sustainable)
+## 9. Business Model
+
+### 9.1 Monetization Strategy: 2-Tier Freemium
+
+eidosSec operates on a simplified **2-Tier Freemium** model. The core platform is open-source and free for individuals, while all advanced features are bundled into a single **PRO** tier at **$39/user/month**. This model eliminates confusion and maximizes conversion by offering clear value at a competitive price point.
+
+#### 9.1.1 Pricing Structure
+
+| Tier | Price | Annual | Users | Philosophy |
+|------|-------|--------|-------|------------|
+| **FREE** | $0 | $0 | 1 user | "Try before you buy - taste the power" |
+| **PRO** | $39/month | $390/year (save $78) | Unlimited | "Pay $39, get EVERYTHING. No limits, no bullshit." |
+
+**Pricing Psychology:**
+- **Annual Discount:** 17% off (~2 months free) for annual billing
+- **$39/month:** Undercuts GitHub Advanced Security ($49) and Snyk ($98+) while offering broader coverage
+- **All-inclusive:** No feature tiers or hidden costs - pay once, get everything
+
+#### 9.1.2 Tier Details
+
+**FREE Tier ($0)**
+- **Target:** Individual developers, students, hobbyists, open-source maintainers
+- **Limits:** 1 user, 3 projects, 1 concurrent scan
+- **Features:**
+  - 15 Essential Tools (SAST, Secrets, basic SCA)
+  - Quick Scan mode (10 min)
+  - Last 10 scans history
+  - JSON export
+  - Community support (Discord)
+- **Goal:** User acquisition, product validation, conversion funnel
+
+**PRO Tier ($39/user/month)**
+- **Target:** Everyone from solo developers to enterprises
+- **Features (Everything in FREE +):**
+  - **Unlimited users, projects, scans**
+  - **All 50+ Tools** (SAST, DAST, SCA, Secrets, Container, IaC, API)
+  - **Deep Scan + Custom modes**
+  - **AI-Powered Features:**
+    - AI explanations (plain language)
+    - AI fix suggestions (code patches)
+    - Attack scenario analysis
+    - Business impact reports
+  - **Automation:**
+    - Auto-fix patches
+    - GitHub/GitLab PR creation
+    - CI/CD templates (GitHub Actions, GitLab CI, Jenkins)
+    - Quality gates
+  - **Team Collaboration:**
+    - Multi-user support
+    - RBAC (custom roles)
+    - Assign findings, comments, workflows
+    - Activity logs
+  - **Reporting & Compliance:**
+    - All export formats (PDF, HTML, SARIF, Markdown)
+    - Compliance reports (PCI-DSS, HIPAA, SOC2, ISO27001, GDPR)
+    - Scheduled reports
+  - **Integrations:**
+    - Slack, JIRA, Webhooks, API access
+  - **Enterprise Features:**
+    - SSO/SAML (Okta, Azure AD)
+    - Air-gapped deployment
+    - Audit logs (SIEM integration)
+    - Priority email support (24h SLA)
+
+### 9.2 Feature Matrix
+
+| Feature Category | FREE | PRO |
+|-----------------|------|-----|
+| **Core Scanning** |
+| Projects | 3 max | ✅ Unlimited |
+| Users | 1 | ✅ Unlimited |
+| Tools | 15 essential | ✅ All 50+ |
+| Scan Modes | Quick only | ✅ Quick + Deep + Custom |
+| Concurrent Scans | 1 | ✅ 10 parallel |
+| Scan History | 10 scans | ✅ Unlimited |
+| Data Retention | 30 days | ✅ Unlimited |
+| **AI & Automation** |
+| AI Explanations | ❌ | ✅ |
+| AI Fix Suggestions | ❌ | ✅ |
+| Auto-fix Patches | ❌ | ✅ |
+| PR Creation (GitHub/GitLab) | ❌ | ✅ |
+| **Reporting** |
+| Export JSON | ✅ | ✅ |
+| Export PDF/HTML/SARIF | ❌ | ✅ |
+| Compliance Reports | ❌ | ✅ All frameworks |
+| Scheduled Reports | ❌ | ✅ |
+| **Collaboration** |
+| Multi-user | ❌ | ✅ |
+| RBAC | ❌ | ✅ |
+| Assign/Comment | ❌ | ✅ |
+| Activity Logs | ❌ | ✅ |
+| **Integrations** |
+| CI/CD Templates | Manual | ✅ Pre-built |
+| Slack/JIRA | ❌ | ✅ |
+| Webhooks/API | ❌ | ✅ |
+| **Enterprise** |
+| SSO/SAML | ❌ | ✅ |
+| Air-gapped Deploy | ❌ | ✅ |
+| Audit Logs | ❌ | ✅ |
+| Priority Support | ❌ | ✅ 24h email |
+
+### 9.3 Financial Model & Projections
+
+#### Year 1: Launch & Validation ($45K Revenue)
+
+**Timeline:**
+- **Month 1-3:** Build FREE tier (MVP)
+- **Month 4-6:** Launch FREE publicly, acquire 500 users
+- **Month 7-9:** Build PRO features, launch PRO tier
+- **Month 10-12:** Optimize conversion, scale marketing
+
+**Quarterly Breakdown:**
+
+| Quarter | Free Users | Pro Accounts | Total Seats | MRR | ARR (Quarter End) |
+|---------|-----------|--------------|-------------|-----|-------------------|
+| Q1 | 0 → 200 | 0 | 0 | $0 | $0 |
+| Q2 | 200 → 500 | 0 → 10 | 80 | $3,120 | $37,440 |
+| Q3 | 500 → 800 | 10 → 25 | 200 | $7,800 | $93,600 |
+| Q4 | 800 → 1,000 | 25 → 40 | 320 | $12,480 | $149,760 |
+
+**Year 1 Metrics:**
+- Free Users: 1,000
+- Pro Accounts: 40
+- Average Account Size: 8 users
+- MRR (end): $12,480
+- ARR (end): $149,760
+- Actual Revenue: ~$45,000 (partial year)
+- Conversion Rate: 4%
+- Monthly Churn: 5%
+
+**Profitability:**
+- Revenue: $45,000
+- Costs: $4,983 (bootstrap mode)
+- Net Profit: $40,017 (88.9% margin)
+
+#### Year 2: Growth & Scale ($700K Revenue)
+
+**Focus:** Marketing, content, conversion optimization, reduce churn
+
+| Quarter | Free Users | Pro Accounts | Total Seats | MRR | ARR (Quarter End) |
+|---------|-----------|--------------|-------------|-----|-------------------|
+| Q1 | 1,000 → 2,000 | 40 → 70 | 700 | $27,300 | $327,600 |
+| Q2 | 2,000 → 3,500 | 70 → 120 | 1,200 | $46,800 | $561,600 |
+| Q3 | 3,500 → 4,500 | 120 → 180 | 1,800 | $70,200 | $842,400 |
+| Q4 | 4,500 → 5,000 | 180 → 250 | 2,500 | $97,500 | $1,170,000 |
+
+**Year 2 Metrics:**
+- Free Users: 5,000
+- Pro Accounts: 250
+- Average Account Size: 10 users
+- MRR (end): $97,500
+- ARR (end): $1,170,000
+- Actual Revenue: ~$700,000
+- Conversion Rate: 5%
+- Monthly Churn: 3%
+- YoY Growth: 1,456%
+
+**Profitability:**
+- Revenue: $700,000
+- Costs: $135,300 (scaling mode)
+- Net Profit: $564,700 (80.7% margin)
+
+#### Year 3: Market Leadership ($4M Revenue)
+
+**Focus:** Enterprise customers, international expansion, product-led growth
+
+| Quarter | Free Users | Pro Accounts | Total Seats | MRR | ARR (Quarter End) |
+|---------|-----------|--------------|-------------|-----|-------------------|
+| Q1 | 5,000 → 8,000 | 250 → 400 | 6,000 | $234,000 | $2,808,000 |
+| Q2 | 8,000 → 11,000 | 400 → 550 | 8,250 | $321,750 | $3,861,000 |
+| Q3 | 11,000 → 13,000 | 550 → 700 | 10,500 | $409,500 | $4,914,000 |
+| Q4 | 13,000 → 15,000 | 700 → 900 | 13,500 | $526,500 | $6,318,000 |
+
+**Year 3 Metrics:**
+- Free Users: 15,000
+- Pro Accounts: 900
+- Average Account Size: 15 users
+- MRR (end): $526,500
+- ARR (end): $6,318,000
+- Actual Revenue: ~$4,000,000
+- Conversion Rate: 6%
+- Monthly Churn: 2%
+- YoY Growth: 471%
+
+**Profitability:**
+- Revenue: $4,000,000
+- Costs: $355,200 (domination mode)
+- Net Profit: $3,644,800 (91.1% margin)
+
+#### 3-Year Summary
+
+| Year | Revenue | Costs | Net Profit | Profit Margin | Customers |
+|------|---------|-------|-----------|---------------|-----------|
+| 1 | $45,000 | $4,983 | $40,017 | 88.9% | 40 |
+| 2 | $700,000 | $135,300 | $564,700 | 80.7% | 250 |
+| 3 | $4,000,000 | $355,200 | $3,644,800 | 91.1% | 900 |
+| **Total** | **$4,745,000** | **$495,483** | **$4,249,517** | **89.6%** | **900** |
+
+**Key Unit Economics:**
+- **Customer Acquisition Cost (CAC):** $124/customer (3-year average)
+- **Lifetime Value (LTV):** $14,508 (based on 3-year retention)
+- **LTV:CAC Ratio:** 117:1 (exceptional, driven by product-led growth)
+- **Payback Period:** 10 days (industry benchmark: 6-12 months)
+- **MRR CAGR:** 574% annually
+
+### 9.4 Licensing Strategy
+
+**Core License: AGPLv3**
+- The core eidosSec platform is licensed under **AGPLv3** (GNU Affero General Public License v3)
+- Ensures that any modifications, if distributed or hosted as a service, must be open-sourced
+- Protects the business from competitors wrapping eidosSec as closed-source SaaS without contributing back
+- All community contributions remain open-source and benefit the ecosystem
+
+**Commercial License for PRO Tier:**
+- PRO customers receive a commercial license that grants:
+  - Right to use all features without copyleft obligations
+  - Internal deployment flexibility
+  - Enterprise-specific features (SSO, RBAC, compliance)
+  - Priority support and SLA guarantees
+- License is subscription-based, tied to active PRO plan
+- Does not grant rights to redistribute or create derivative commercial products
+
+**Integrated Tools:**
+- All 50+ integrated security tools retain their original licenses (MIT, Apache 2.0, GPL, etc.)
+- eidosSec acts purely as an orchestrator and does not modify tool source code
+- Full license compliance documentation maintained in repository
+- Attribution and credits provided for all integrated tools
+
+**Contributor License Agreement (CLA):**
+- Contributors sign CLA granting eidosSec rights to relicense contributions
+- Enables future licensing flexibility if needed
+- Standard practice for dual-licensed open-source projects
+- Protects both the project and contributors
+
+### 9.5 Go-to-Market Strategy
+
+#### Phase 1: Community Building (Months 1-6)
+**Objective:** Establish credibility, acquire first 500 free users
+
+**Tactics:**
+
+**1. GitHub Launch**
+- Polished README with screenshots, GIFs, demo video
+- Comprehensive documentation (installation, usage, troubleshooting)
+- Issue templates, contribution guidelines
+- "Good first issue" labels for new contributors
+- Target: 5,000 GitHub stars
+
+**2. Developer Communities**
+- Launch posts: Hacker News (Show HN), Reddit (r/programming, r/netsec, r/php)
+- Dev.to tutorial series
+- Medium/Substack blog
+- Twitter/X presence (security tips, release announcements)
+
+**3. Content Marketing**
+- **Blog Posts:**
+  - "How We Built a Free Alternative to Snyk"
+  - "50+ Security Tools in One Platform: Architecture Deep Dive"
+  - "Reducing False Positives by 70% with Multi-Tool Validation"
+- **Video Tutorials:**
+  - YouTube channel (installation, walkthroughs, security tips)
+  - Livestreams (code reviews using eidosSec)
+
+**4. Open Source Engagement**
+- Contribute fixes to integrated tools (Semgrep, ZAP)
+- Sponsor open-source projects we depend on
+- Attend/speak at FOSDEM, All Things Open
+
+**Success Metrics:**
+- 5,000 GitHub stars
+- 500 active users
+- 10 contributors
+- 50 blog shares
+
+#### Phase 2: Market Penetration (Months 7-18)
+**Objective:** Scale to 5,000 users, launch PRO tier, establish thought leadership
+
+**Tactics:**
+
+**1. Product Hunt Launch**
+- Coordinate with PRO tier launch
+- Engage with community, offer live support
+- Goal: #1 Product of the Day
+
+**2. Conference Presence**
+- **Speaking:**
+  - OWASP AppSec (Global, USA, EU)
+  - Black Hat Arsenal
+  - DEF CON demo labs
+  - Local meetups (SecureNYC, BayThreat)
+- **Topics:**
+  - "Democratizing Security Scanning"
+  - "Multi-Tool Validation: The Future of SAST"
+  - "Privacy-First DevSecOps"
+
+**3. Partnerships**
+- Framework Communities: List eidosSec in Laravel/Django/Rails docs
+- Bootcamps: Partner with coding schools for secure coding curriculum
+- Tool Vendors: Joint content with Semgrep, Trivy teams
+
+**4. Influencer Outreach**
+- Personalized demos to security influencers (Troy Hunt, Tanya Janca)
+- Request reviews/mentions
+- Sponsor security podcasts (Darknet Diaries, Risky Business)
+
+**5. Case Studies**
+- "How Startup X Found 50 Vulnerabilities Before Series A"
+- "Open Source Project Y Reduced Security Issues by 80%"
+
+**Success Metrics:**
+- 20,000 GitHub stars
+- 5,000 active users
+- 100 PRO customers
+- 10 enterprise inquiries
+
+#### Phase 3: Enterprise Expansion (Months 19-36)
+**Objective:** Scale to $4M ARR, 900 PRO accounts
+
+**Tactics:**
+
+**1. Product-Led Growth**
+- In-app upgrade prompts when hitting FREE limits
+- Free trial: 14-day PRO trial (no credit card required)
+- Email nurture campaigns
+- Success stories and testimonials
+
+**2. Enterprise Outreach**
+- Target companies with 50+ developers
+- Free POC (30-day trial with white-glove support)
+- Custom demos for decision-makers
+- Compliance-specific landing pages (PCI-DSS, HIPAA, SOC2)
+
+**3. Content at Scale**
+- SEO-optimized blog (target keywords: "free security scanner", "SAST tool", "DevSecOps")
+- Video tutorials for each framework (Laravel, Django, Node.js)
+- Weekly webinars
+- Case studies and ROI calculators
+
+**4. Channel Partners (Future)**
+- Partner with DevOps consultancies
+- Revenue share: 20% commission
+- Co-marketing (webinars, white papers)
+
+**5. Analyst Relations (Future)**
+- Brief Gartner, Forrester on eidosSec
+- Goal: Mention in Magic Quadrant/Wave reports
+- Provide data for market research
+
+**Success Metrics:**
+- 50,000 GitHub stars
+- 15,000 free users
+- 900 PRO accounts
+- $4M ARR
+- 91% profit margin
+
+### 9.6 Cost Structure
+
+#### Year 1: Bootstrap Mode ($4,983/year)
+
+| Category | Monthly | Annual | Notes |
+|----------|---------|--------|-------|
+| **Founder Salary** | $0 | $0 | Bootstrap (live off savings) |
+| **Infrastructure** | $15 | $432 | Domain, email, CDN (free tiers) |
+| **Development Tools** | $115 | $1,380 | Copilot, Claude API, Cursor, Figma |
+| **AI Features** | $120 | $1,440 | OpenAI + Claude for PRO users |
+| **Marketing** | $136 | $1,631 | Product Hunt, content tools, ads |
+| **Legal & Admin** | - | $700 | LLC formation, legal templates |
+| **TOTAL** | **$366/month** | **$4,983** | |
+
+**Year 1 Profit:** $40,017 (88.9% margin)
+
+#### Year 2: Scaling Mode ($135,300/year)
+
+| Category | Monthly | Annual | Notes |
+|----------|---------|--------|-------|
+| **Founder Salary** | $8,000 | $96,000 | Start paying yourself |
+| **Infrastructure** | $195 | $2,340 | Scaling hosting, DB, email, CDN |
+| **Development Tools** | $100 | $1,200 | Team licenses |
+| **AI Features** | $550 | $6,600 | 250 PRO customers |
+| **Marketing** | $1,600 | $19,200 | Content, ads, SEO, designer |
+| **Legal & Admin** | $330 | $3,960 | Accounting, legal, insurance |
+| **TOTAL** | **$11,275/month** | **$135,300** | |
+
+**Year 2 Profit:** $564,700 (80.7% margin)
+
+#### Year 3: Domination Mode ($355,200/year)
+
+| Category | Monthly | Annual | Notes |
+|----------|---------|--------|-------|
+| **Team Salaries** | $19,500 | $234,000 | You + 3 part-time contractors |
+| **Infrastructure** | $1,000 | $12,000 | Heavy scaling |
+| **Development Tools** | $200 | $2,400 | Team licenses |
+| **AI Features** | $2,200 | $26,400 | 900 PRO customers |
+| **Marketing** | $5,500 | $66,000 | Content team, ads, conferences |
+| **Legal & Admin** | $1,100 | $13,200 | Full-service accounting, legal |
+| **TOTAL** | **$29,600/month** | **$355,200** | |
+
+**Year 3 Profit:** $3,644,800 (91.1% margin)
+
+### 9.7 Funding Strategy
+
+**Year 1: Bootstrapped**
+- Self-funded with personal savings
+- Total investment: $4,983
+- Profitable from Month 7
+- No external funding needed
+
+**Year 2-3: Revenue-Funded Growth**
+- Reinvest profits into growth
+- No VC funding required
+- Maintain founder control (100% ownership)
+- High margins (80-91%) enable aggressive reinvestment
+
+**Optional: Series A (Year 3+)**
+- Only if seeking rapid international expansion
+- Potential raise: $3-5M at $15-20M valuation
+- Use of funds: Hire 10 engineers, scale marketing
+- **Recommendation:** Not needed - bootstrap with revenue
+
+### 9.8 Success Metrics & KPIs
+
+**North Star Metric:** Annual Recurring Revenue (ARR)
+
+**Key Performance Indicators:**
+
+| Metric | Year 1 Target | Year 2 Target | Year 3 Target |
+|--------|--------------|--------------|--------------|
+| **Growth** |
+| Free Users | 1,000 | 5,000 | 15,000 |
+| Free Signups/Week | 20 | 100 | 300 |
+| PRO Accounts | 40 | 250 | 900 |
+| PRO Signups/Week | 2 | 10 | 30 |
+| **Revenue** |
+| MRR | $12K | $97K | $526K |
+| ARR | $150K | $1.17M | $6.32M |
+| **Health** |
+| Conversion Rate | 4% | 5% | 6% |
+| Monthly Churn | <5% | <3% | <2% |
+| **Economics** |
+| CAC | $30 | $116 | $132 |
+| LTV | $2,340 | $9,360 | $14,508 |
+| LTV:CAC | 78:1 | 81:1 | 110:1 |
+| Payback Period | 7 days | 9 days | 10 days |
+| **Operations** |
+| Support Tickets/Week | 10 | 30 | 50 |
+| AI Chatbot Resolution | 70% | 80% | 85% |
+| API Uptime | >99% | >99.5% | >99.5% |
+| NPS Score | >30 | >40 | >50 |
 
 
 10. Success Metrics

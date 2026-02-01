@@ -1,0 +1,37 @@
+name: Scanner CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'scanner/**'
+      - '.github/workflows/scanner-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'scanner/**'
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./scanner
+          file: ./scanner/Dockerfile
+          push: false
+          tags: eidossec/scanner:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test scanner image can start
+        run: |
+          docker build -t eidossec/scanner:test ./scanner
+          docker run --rm eidossec/scanner:test echo "Scanner image works"
