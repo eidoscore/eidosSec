@@ -1,0 +1,79 @@
+name: Deploy Scanner to Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scanner/**'
+      - '.github/workflows/deploy-scanner.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set build timestamp
+        id: timestamp
+        run: echo "BUILD_TIME=$(date -u +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
+        
+      - name: Report build start
+        run: |
+          curl -X POST http://localhost:9000/api/builds \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"build_id\": \"${{ github.sha }}\",
+              \"status\": \"building\",
+              \"component\": \"scanner\",
+              \"started_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"branch\": \"${{ github.ref_name }}\",
+              \"commit_message\": \"${{ github.event.head_commit.message }}\"
+            }" || true
+            
+      - name: Build scanner image
+        id: build
+        run: |
+          echo "🔨 Building scanner image..."
+          cd scanner
+          docker build \
+            -t eidossec/scanner:latest \
+            -t eidossec/scanner:${{ steps.timestamp.outputs.BUILD_TIME }} \
+            -f Dockerfile \
+            . 2>&1 | tee build.log
+            
+      - name: Verify image
+        run: |
+          echo "✅ Verifying image..."
+          docker images | grep eidossec/scanner
+          docker run --rm eidossec/scanner:latest python3 --version
+          
+      - name: Report build success
+        if: success()
+        run: |
+          curl -X PATCH http://localhost:9000/api/builds/${{ github.sha }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"success\",
+              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"image_size\": \"$(docker images eidossec/scanner:latest --format '{{.Size}}')\"
+            }" || true
+            
+      - name: Report build failure
+        if: failure()
+        run: |
+          curl -X PATCH http://localhost:9000/api/builds/${{ github.sha }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"failed\",
+              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"error\": \"Build failed - check logs\"
+            }" || true
+            
+      - name: Cleanup old images
+        if: success()
+        run: |
+          echo "🧹 Cleaning up old images..."
+          docker image prune -f --filter "until=48h"

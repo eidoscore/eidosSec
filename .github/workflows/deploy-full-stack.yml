@@ -1,0 +1,100 @@
+name: Deploy Full Stack to Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'scanner/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-full-stack.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Report deployment start
+        run: |
+          curl -X POST http://localhost:9000/api/deployments \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"deployment_id\": \"${{ github.sha }}\",
+              \"status\": \"deploying\",
+              \"started_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"branch\": \"${{ github.ref_name }}\"
+            }" || true
+            
+      - name: Create .env file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.template .env
+            echo "⚠️  Created .env from template - please configure manually"
+          fi
+          
+      - name: Pull existing images
+        run: |
+          echo "📦 Pulling latest images if available..."
+          docker-compose pull || true
+          
+      - name: Build services
+        run: |
+          echo "🔨 Building all services..."
+          docker-compose build --parallel 2>&1 | tee build.log
+          
+      - name: Run database migrations
+        run: |
+          echo "🗄️  Running database migrations..."
+          docker-compose run --rm backend alembic upgrade head || true
+          
+      - name: Start services
+        run: |
+          echo "🚀 Starting services..."
+          docker-compose up -d
+          
+      - name: Wait for health checks
+        run: |
+          echo "⏳ Waiting for services to be healthy..."
+          sleep 10
+          
+          # Check backend health
+          timeout 60 sh -c 'until curl -f http://localhost:8000/health; do sleep 2; done' || {
+            echo "❌ Backend health check failed"
+            exit 1
+          }
+          
+          echo "✅ All services healthy"
+          
+      - name: Show service status
+        run: |
+          echo "📊 Service Status:"
+          docker-compose ps
+          
+      - name: Report deployment success
+        if: success()
+        run: |
+          curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"success\",
+              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"services\": [\"backend\", \"frontend\", \"scanner\", \"postgres\", \"redis\"]
+            }" || true
+            
+      - name: Report deployment failure
+        if: failure()
+        run: |
+          curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"failed\",
+              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }" || true
+          
+          echo "📋 Container logs:"
+          docker-compose logs --tail=50
