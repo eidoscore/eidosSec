@@ -11,49 +11,22 @@ from app.tools.bandit import BanditWrapper
 from app.tools.trufflehog import TruffleHogWrapper
 from app.tools.gitleaks import GitleaksWrapper
 from app.tools.trivy import TrivyWrapper
-from app.detectors.language import LanguageDetector
-from app.detectors.framework import FrameworkDetector
-from app.schemas import ScanResultSchema, FindingSchema, ToolResultSchema
-
-logger = logging.getLogger(__name__)
-
+from app.tools.eslint import EslintWrapper
 
 class ScanOrchestrator:
-    """
-    Orchestrates execution of multiple security tools
-    
-    Responsibilities:
-    - Detect project languages and frameworks
-    - Execute tools sequentially
-    - Aggregate findings from all tools
-    - Publish progress updates via Redis pub/sub
-    - Handle tool failures gracefully
-    """
-    
+    # ... (existing methods)
+
     def __init__(self, project_path: Path, scan_id: str, redis_url: str):
-        """
-        Initialize orchestrator
+        # ... (existing init code)
         
-        Args:
-            project_path: Path to project directory
-            scan_id: UUID of scan in database
-            redis_url: Redis connection URL for progress updates
-        """
-        self.project_path = project_path
-        self.scan_id = scan_id
-        self.redis_client = redis.from_url(redis_url, decode_responses=True)
-        
-        # Initialize detectors
-        self.language_detector = LanguageDetector()
-        self.framework_detector = FrameworkDetector()
-        
-        # Tool instances (Week 3-4: 5 tools)
+        # Tool instances (Week 5-6: Added ESLint)
         self.all_tools = [
             SemgrepWrapper(project_path),
             BanditWrapper(project_path),
             TruffleHogWrapper(project_path),
             GitleaksWrapper(project_path),
             TrivyWrapper(project_path),
+            EslintWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
