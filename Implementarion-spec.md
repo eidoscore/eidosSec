@@ -280,163 +280,163 @@ USER MACHINE
 11. The UI renders the final findings for the user.
 
 **Flow 2: Real-Time Progress Updates**
+
+```text
+Scanner Worker → Redis Pub/Sub → Backend (FastAPI) → Frontend (Browser)
+
+"15% Semgrep done"  ── broadcast ── WebSocket send ──> UI update
+"30% PHPStan done" ── broadcast ── WebSocket send ──> UI update
 ```
-Scanner Worker Redis Pub/Sub Backend (FastAPI) Frontend (Browser)
 
-"15% Semgrep done"ï¿½
-broadcastï¿½
-WebSocket sendï¿½
-(Update UI)
+### 2.3 Docker Compose Configuration
 
-"30% PHPStan done"ï¿½
-broadcastï¿½
-WebSocket sendï¿½
-(Update UI)
-2.3 Docker Compose Configuration
-docker-compose.yml (Production)
-yamlversion: '3.8'
+`docker-compose.yml` (production excerpt):
+
+```yaml
+version: '3.8'
 
 services:
-# Frontend - Nginx serving React SPA
-frontend:
-build:
-context: ./frontend
-dockerfile: Dockerfile
-image: eidossec/frontend:latest
-container_name: eidossec-frontend
-ports:
-- "3000:80"
-depends_on:
-- backend
-networks:
-- eidossec-network
-restart: unless-stopped
-environment:
-- VITE_API_URL=http://localhost:8000
-healthcheck:
-test: ["CMD", "curl", "-f", "http://localhost:80"]
-interval: 30s
-timeout: 10s
-retries: 3
+  # Frontend - Nginx serving React SPA
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: eidossec/frontend:latest
+    container_name: eidossec-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-# Backend - FastAPI application
-backend:
-build:
-context: ./backend
-dockerfile: Dockerfile
-image: eidossec/backend:latest
-container_name: eidossec-backend
-ports:
-- "8000:8000"
-depends_on:
-- postgres
-- redis
+  # Backend - FastAPI application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: eidossec/backend:latest
+    container_name: eidossec-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eidossec:${DB_PASSWORD}@postgres:5432/eidossec
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    volumes:
+      - ./projects:/app/projects:ro
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker - Background task processor
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: eidossec/backend:latest
+    container_name: eidossec-celery
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://eidossec:${DB_PASSWORD}@postgres:5432/eidossec
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./projects:/app/projects:ro
+      - ./logs:/app/logs
+
+  # Scanner Worker - Executes security tools
+  scanner:
+    build:
+      context: ./scanner
+      dockerfile: Dockerfile
+    image: eidossec/scanner:latest
+    container_name: eidossec-scanner
+    depends_on:
+      - redis
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./projects:/app/projects:ro
+      - ./scan-results:/app/scan-results
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: eidossec-db
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=eidossec
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=eidossec
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eidossec"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Message queue and cache
+  redis:
+    image: redis:7-alpine
+    container_name: eidossec-redis
+    networks:
+      - eidossec-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
-- eidossec-network
-restart: unless-stopped
-environment:
-- DATABASE_URL=postgresql+asyncpg://eidossec:${DB_PASSWORD}@postgres:5432/eidossec
-- REDIS_URL=redis://redis:6379/0
-- SECRET_KEY=${SECRET_KEY}
-- OPENAI_API_KEY=${OPENAI_API_KEY:-}
-- GITHUB_TOKEN=${GITHUB_TOKEN:-}
+  eidossec-network:
+    driver: bridge
+
 volumes:
-- ./projects:/app/projects:ro # Read-only mount for user code
-- ./logs:/app/logs
-healthcheck:
-test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-interval: 30s
-timeout: 10s
-retries: 3
-
-# Celery Worker - Background task processor
-celery-worker:
-build:
-context: ./backend
-dockerfile: Dockerfile
-image: eidossec/backend:latest
-container_name: eidossec-celery
-command: celery -A app.tasks worker --loglevel=info --concurrency=2
-depends_on:
-- redis
-- postgres
-networks:
-- eidossec-network
-restart: unless-stopped
-environment:
-- DATABASE_URL=postgresql+asyncpg://eidossec:${DB_PASSWORD}@postgres:5432/eidossec
-- REDIS_URL=redis://redis:6379/0
-volumes:
-- ./projects:/app/projects:ro
-- ./logs:/app/logs
-
-# Scanner Worker - Executes security tools
-scanner:
-build:
-context: ./scanner
-dockerfile: Dockerfile
-image: eidossec/scanner:latest
-container_name: eidossec-scanner
-depends_on:
-- redis
-networks:
-- eidossec-network
-restart: unless-stopped
-environment:
-- REDIS_URL=redis://redis:6379/0
-volumes:
-- ./projects:/app/projects:ro # Read-only mount
-- ./scan-results:/app/scan-results # Writable for temp outputs
-resources:
-limits:
-cpus: '4'
-memory: 8G
-reservations:
-cpus: '2'
-memory: 4G
-
-# PostgreSQL Database
-postgres:
-image: postgres:15-alpine
-container_name: eidossec-db
-networks:
-- eidossec-network
-restart: unless-stopped
-environment:
-- POSTGRES_USER=eidossec
-- POSTGRES_PASSWORD=${DB_PASSWORD}
-- POSTGRES_DB=eidossec
-volumes:
-- postgres-data:/var/lib/postgresql/data
-healthcheck:
-test: ["CMD-SHELL", "pg_isready -U eidossec"]
-interval: 10s
-timeout: 5s
-retries: 5
-
-# Redis - Message queue and cache
-redis:
-image: redis:7-alpine
-container_name: eidossec-redis
-networks:
-- eidossec-network
-restart: unless-stopped
-command: redis-server --appendonly yes
-volumes:
-- redis-data:/data
-healthcheck:
-test: ["CMD", "redis-cli", "ping"]
-interval: 10s
-timeout: 5s
-retries: 5
-
-networks:
-eidossec-network:
-driver: bridge
-
-volumes:
-postgres-data:
-redis-data:
+  postgres-data:
+  redis-data:
 ```
 
 **Key Configuration Notes:**
@@ -454,109 +454,111 @@ redis-data:
 ## 3. Database Design
 
 ### 3.1 Entity-Relationship Diagram
+
+```text
+┌────────────┐    1 ──── n    ┌─────────┐    1 ──── n    ┌───────────┐
+│  projects  │ ──────────────>│  scans  │ ──────────────>│  findings │
+├────────────┤                ├─────────┤                ├───────────┤
+│ id (UUID)  │                │ id      │                │ id        │
+│ name       │                │ mode    │                │ type      │
+│ path       │                │ status  │                │ severity  │
+│ languages  │                │ started │                │ confidence│
+│ framework  │                │ score   │                │ file_path │
+└────────────┘                └─────────┘                └───────────┘
+         │                                              │
+         │                                              │ 1 ──── n
+         │                                              ▼
+         │                                     ┌──────────────────┐
+         │                                     │     comments     │
+         │                                     ├──────────────────┤
+         │                                     │ id (UUID)        │
+         │                                     │ finding_id (FK)  │
+         │                                     │ comment_text     │
+         │                                     └──────────────────┘
+         │
+         │ (Optional multi-user mode)
+         ▼
+┌────────────┐                          ┌────────────┐
+│    users    │                          │  settings  │
+├────────────┤                          ├────────────┤
+│ id (UUID)   │                          │ key        │
+│ username    │                          │ value JSON │
+│ email       │                          │ updated_at │
+│ role        │                          └────────────┘
+└────────────┘
 ```
 
-projects scans findings
-$ $ $
-id (UUID) PK < id (UUID) PK < id (UUID) PK
-name 1:N project_id FK 1:N scan_id FK
-path mode type
-languages status severity
-framework started_at confidence
-settings completed_at file_path
-created_at duration_sec line_start
-updated_at score line_end
-summary code_snippet
-tools_executed message
-error_message cwe_id
-owasp_category
-detected_by
-raw_outputs
-status
-assigned_to
-created_at
+### 3.2 Table Schemas (PostgreSQL DDL)
 
-1:N
-ï¿½
+#### Table: projects
 
-comments
-$
-id (UUID) PK
-finding_id FK
-user_id FK
-comment_text
-created_at
-
-users settings
-$ $
-id (UUID) PK id (SERIAL) PK
-username key
-email value (JSONB)
-password_hash updated_at
-role
-created_at
-last_login_at
-
-3.2 Table Schemas (PostgreSQL DDL)
-Table: projects
-sqlCREATE TABLE projects (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-name VARCHAR(255) NOT NULL,
-path TEXT NOT NULL, -- Absolute path on host system
-languages JSONB DEFAULT '[]'::jsonb, -- ["php", "javascript"]
-framework VARCHAR(100), -- "laravel", "django", etc.
-settings JSONB DEFAULT '{}'::jsonb, -- {scan_mode: "quick", exclude_paths: [...]}
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-CONSTRAINT projects_name_unique UNIQUE (name),
-CONSTRAINT projects_path_check CHECK (path ~ '^/.*') -- Must be absolute path
+```sql
+CREATE TABLE projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    path TEXT NOT NULL,
+    languages JSONB DEFAULT '[]'::jsonb,
+    framework VARCHAR(100),
+    settings JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT projects_name_unique UNIQUE (name),
+    CONSTRAINT projects_path_check CHECK (path ~ '^/.*')
 );
 
 CREATE INDEX idx_projects_name ON projects (name);
 CREATE INDEX idx_projects_created_at ON projects (created_at DESC);
-Table: scans
-sqlCREATE TABLE scans (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-mode VARCHAR(20) NOT NULL CHECK (mode IN ('quick', 'deep', 'custom')),
-status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
-started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-completed_at TIMESTAMP WITH TIME ZONE,
-duration_seconds INTEGER, -- Computed: completed_at - started_at
-score DECIMAL(3,1) CHECK (score >= 0 AND score <= 10), -- 0.0 to 10.0
-summary JSONB DEFAULT '{}'::jsonb, -- {critical: 3, high: 8, medium: 15, low: 22}
-tools_executed JSONB DEFAULT '[]'::jsonb, -- ["semgrep", "gitleaks", ...]
-error_message TEXT,
+```
 
-CONSTRAINT scans_duration_check CHECK (completed_at IS NULL OR completed_at >= started_at)
+#### Table: scans
+
+```sql
+CREATE TABLE scans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    mode VARCHAR(20) NOT NULL CHECK (mode IN ('quick', 'deep', 'custom')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    duration_seconds INTEGER,
+    score DECIMAL(3,1) CHECK (score >= 0 AND score <= 10),
+    summary JSONB DEFAULT '{}'::jsonb,
+    tools_executed JSONB DEFAULT '[]'::jsonb,
+    error_message TEXT,
+    CONSTRAINT scans_duration_check CHECK (completed_at IS NULL OR completed_at >= started_at)
 );
 
 CREATE INDEX idx_scans_project_id ON scans (project_id);
 CREATE INDEX idx_scans_status ON scans (status);
 CREATE INDEX idx_scans_started_at ON scans (started_at DESC);
 CREATE INDEX idx_scans_score ON scans (score);
-Table: findings
-sqlCREATE TABLE findings (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
-type VARCHAR(100) NOT NULL, -- "sql_injection", "xss", "hardcoded_secret"
-severity VARCHAR(20) NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low', 'info')),
-confidence INTEGER NOT NULL CHECK (confidence >= 0 AND confidence <= 100),
-file_path TEXT NOT NULL, -- Relative to project root
-line_start INTEGER NOT NULL CHECK (line_start > 0),
-line_end INTEGER NOT NULL CHECK (line_end >= line_start),
-code_snippet TEXT, -- 10-20 lines of context
-message TEXT NOT NULL, -- Human-readable description
-cwe_id VARCHAR(20), -- "CWE-89"
-owasp_category VARCHAR(50), -- "A03:2021"
-detected_by_tools JSONB NOT NULL DEFAULT '[]'::jsonb, -- ["semgrep", "codeql"]
-raw_outputs JSONB DEFAULT '{}'::jsonb, -- {semgrep: {...}, codeql: {...}}
-status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open', 'fixed', 'false_positive', 'accepted_risk', 'wont_fix')),
-assigned_to VARCHAR(100), -- Username (optional)
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
-CONSTRAINT findings_line_range_check CHECK (line_end >= line_start)
+-- Full-text search on summary
+CREATE INDEX idx_scans_summary ON scans USING gin(to_tsvector('english', summary));
+```
+
+#### Table: findings
+
+```sql
+CREATE TABLE findings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    type VARCHAR(100) NOT NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low', 'info')),
+    confidence INTEGER NOT NULL CHECK (confidence >= 0 AND confidence <= 100),
+    file_path TEXT NOT NULL,
+    line_start INTEGER NOT NULL CHECK (line_start > 0),
+    line_end INTEGER NOT NULL CHECK (line_end >= line_start),
+    code_snippet TEXT,
+    message TEXT NOT NULL,
+    cwe_id VARCHAR(20),
+    owasp_category VARCHAR(50),
+    detected_by_tools JSONB NOT NULL DEFAULT '[]'::jsonb,
+    raw_outputs JSONB DEFAULT '{}'::jsonb,
+    status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open', 'fixed', 'false_positive', 'accepted_risk', 'wont_fix')),
+    assigned_to VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT findings_line_range_check CHECK (line_end >= line_start)
 );
 
 CREATE INDEX idx_findings_scan_id ON findings (scan_id);
@@ -568,39 +570,50 @@ CREATE INDEX idx_findings_confidence ON findings (confidence DESC);
 
 -- Full-text search on message and file_path
 CREATE INDEX idx_findings_search ON findings USING gin(to_tsvector('english', message || ' ' || file_path));
-Table: comments (for collaboration)
-sqlCREATE TABLE comments (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
-user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL if single-user mode
-comment_text TEXT NOT NULL,
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+```
+
+#### Table: comments (for collaboration)
+
+```sql
+CREATE TABLE comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    comment_text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_comments_finding_id ON comments (finding_id);
 CREATE INDEX idx_comments_created_at ON comments (created_at DESC);
-Table: users (optional, for multi-user mode)
-sqlCREATE TABLE users (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-username VARCHAR(50) NOT NULL UNIQUE,
-email VARCHAR(255) NOT NULL UNIQUE,
-password_hash VARCHAR(255) NOT NULL, -- bcrypt hash
-role VARCHAR(20) NOT NULL DEFAULT 'developer' CHECK (role IN ('admin', 'security_lead', 'developer', 'viewer')),
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-last_login_at TIMESTAMP WITH TIME ZONE,
+```
 
-CONSTRAINT users_username_length CHECK (length(username) >= 3),
-CONSTRAINT users_email_format CHECK (email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+#### Table: users (optional, for multi-user mode)
+
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'developer' CHECK (role IN ('admin', 'security_lead', 'developer', 'viewer')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    last_login_at TIMESTAMPTZ,
+    CONSTRAINT users_username_length CHECK (length(username) >= 3),
+    CONSTRAINT users_email_format CHECK (email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
 CREATE INDEX idx_users_username ON users (username);
 CREATE INDEX idx_users_email ON users (email);
-Table: settings (global application settings)
-sqlCREATE TABLE settings (
-id SERIAL PRIMARY KEY,
-key VARCHAR(100) NOT NULL UNIQUE,
-value JSONB NOT NULL,
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+```
+
+#### Table: settings (global application settings)
+
+```sql
+CREATE TABLE settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(100) NOT NULL UNIQUE,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_settings_key ON settings (key);
@@ -669,7 +682,7 @@ sa.Column('status', sa.String(20), nullable=False),
 sa.Column('started_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now()),
 sa.Column('completed_at', sa.TIMESTAMP(timezone=True)),
 sa.Column('duration_seconds', sa.Integer),
-sa.Column('score', sa.Numeric(3, 1)),
+sa.Column('score', sa.Numeric(3,1)),
 sa.Column('summary', JSONB, server_default=sa.text("'{}'::jsonb")),
 sa.Column('tools_executed', JSONB, server_default=sa.text("'[]'::jsonb")),
 sa.Column('error_message', sa.Text),
@@ -742,7 +755,7 @@ status = Column(String(20), nullable=False)
 started_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 completed_at = Column(TIMESTAMP(timezone=True))
 duration_seconds = Column(Integer)
-score = Column(Numeric(3, 1))
+score = Column(Numeric(3,1))
 summary = Column(JSONB, default=dict)
 tools_executed = Column(JSONB, default=list)
 error_message = Column(Text)
@@ -1735,7 +1748,7 @@ await api.post(`/scans/${scanId}/cancel`);
 5.4 State Management (store/)
 store/scanStore.ts (Zustand):
 typescriptimport { create } from 'zustand';
-import { Scan, ScanProgress } from '@/types';
+import { Scan } from '@/types';
 
 interface ScanState {
 scans: Scan[];
@@ -1876,7 +1889,7 @@ const { addScan } = useScanStore();
 const scansQuery = useQuery({
 queryKey: ['scans', projectId],
 queryFn: () => scanService.listScans({ project_id: projectId }),
-refetchInterval: 5000, // Poll every 5s for status updates
+refetchInterval: 5000, # Poll every 5s for status updates
 });
 
 // Mutation: Create scan
@@ -1906,7 +1919,6 @@ error: scansQuery.error,
 createScan: createScanMutation.mutate,
 isCreating: createScanMutation.isPending,
 deleteScan: deleteScanMutation.mutate,
-};
 };
 
 export const useScan = (scanId: string | null) => {
@@ -2352,7 +2364,6 @@ manualChunks: {
 },
 },
 });
-```
 
 ---
 
@@ -2464,9 +2475,9 @@ List of findings in standardized format:
 {
 "type": "sql_injection",
 "severity": "critical",
-"file_path": "app/Http/Controllers/PaymentController.php",
-"line_start": 127,
-"line_end": 127,
+"file_path": "app.py",
+"line_start": 10,
+"line_end": 10,
 "message": "Tainted SQL query detected",
 "confidence": 80,
 "cwe_id": "CWE-89",
@@ -2632,11 +2643,12 @@ vuln_type = self._extract_type(check_id)
 finding = {
 "type": vuln_type,
 "severity": severity,
+"confidence": 70, # Semgrep is fairly accurate
 "file_path": result["path"],
 "line_start": result["start"]["line"],
 "line_end": result["end"]["line"],
+"code_snippet": "...",
 "message": result["extra"]["message"],
-"confidence": 70, # Semgrep is fairly accurate
 "cwe_id": result["extra"].get("metadata", {}).get("cwe"),
 "owasp_category": result["extra"].get("metadata", {}).get("owasp"),
 "raw": result
@@ -2827,13 +2839,11 @@ if "python" in languages:
 tools.extend([
 self.all_tools["semgrep"],
 self.all_tools["bandit"],
-self.all_tools["pylint"],
 ])
 
 if "javascript" in languages or "typescript" in languages:
 tools.extend([
 self.all_tools["semgrep"],
-self.all_tools["eslint"],
 ])
 
 # 3. SCA (always check dependencies)
@@ -3160,7 +3170,17 @@ return max(0.0, min(10.0, round(score, 1)))
 
 7. Tool Integration Specifications
 7.1 Tool Categories & Selection Matrix
-CategoryToolsLanguagesWhen to UseSASTSemgrep, CodeQL, Bandit, Brakeman, PHPStan, ESLint, Pylint, PMD, Infer, Clang, SonarQube, Joern, Sourcetrail, Flawfinder, NodeJSScanAllAlways (language-specific)DASTOWASP ZAP, Nuclei, Wapiti, Arachni, Nikto, FFUF, mitmproxy, tsharkN/ADeep scan + runtime URL providedSCATrivy, Grype, OWASP Dep-Check, OSV-Scanner, npm audit, pip-audit, Snyk CLI, SyftAllAlways (check dependencies)SecretsTruffleHog, Gitleaks, detect-secrets, Whispers, git-secretsAllAlways (even Quick scan)ContainerTrivy, Dockle, Hadolint, ClairN/AIf Dockerfile presentIaCCheckov, Terrascan, tfsec, KicsN/AIf Terraform/K8s/CloudFormation presentAPINuclei (API templates), FFUF, Postman Newman, REST-AttackerN/ADeep scan + API detectedFuzzingAFL++, Radamsa, BoofuzzC/C++, BinaryDeep scan only (very resource intensive)AdvancedJoern, Sourcetrail, Infer, Clang AnalyzerC/C++, JavaDeep scan onlyMemoryValgrind, AddressSanitizer, ThreadSanitizerC/C++Deep scan + compiled code
+| Category | Tools | Languages | When to Use |
+| --- | --- | --- | --- |
+| SAST | Semgrep, CodeQL, Bandit, Brakeman, PHPStan, ESLint, etc. | All | Always (language-specific) |
+| DAST | OWASP ZAP, Nuclei, Wapiti, Nikto | N/A | Deep scan + runtime URL provided |
+| SCA | Trivy, Grype, OWASP Dep-Check, npm audit, pip-audit | All | Always (check dependencies) |
+| Secrets | TruffleHog, Gitleaks, detect-secrets, Whispers, git-secrets | All | Even Quick scan |
+| Container | Trivy, Dockle, Hadolint | N/A | If Dockerfile present |
+| IaC | Checkov, Terrascan, tfsec, Kics | N/A | If Terraform/K8s/CloudFormation present |
+| API | Nuclei (API templates), FFUF, Postman Newman, REST-Attacker | N/A | Deep scan + API detected |
+| Fuzzing | AFL++, Radamsa, Boofuzz | C/C++, Binary | Deep scan only (very resource intensive) |
+| Advanced | Joern, Sourcetrail, Infer, Clang Analyzer | C/C++, Java | Deep scan only |
 7.2 Tool Installation (Dockerfile)
 scanner/Dockerfile:
 dockerfileFROM ubuntu:22.04
@@ -3301,6 +3321,14 @@ json{
 "category": "sast",
 "raw": {...}
 }
-Mapping Guide:
-ToolSeverity MappingType ExtractionConfidenceSemgrepERRORï¿½high, WARNINGï¿½medium, INFOï¿½lowFrom rule ID70CodeQLerrorï¿½high, warningï¿½medium, noteï¿½lowFrom rule ID90 (high accuracy)BanditHIGHï¿½high, MEDIUMï¿½medium, LOWï¿½lowFrom test_id75TruffleHogAllï¿½critical"hardcoded_secret"95 (entropy-based)GitleaksAllï¿½high"hardcoded_secret"90TrivyCRITICALï¿½critical, HIGHï¿½high, etc.From CVE100 (known CVEs)ZAP3ï¿½critical, 2ï¿½high, 1ï¿½medium, 0ï¿½infoFrom alert type80 (runtime verified)
 
+Mapping Guide:
+| Tool | Severity Mapping | Type Extraction | Confidence |
+| --- | --- | --- | --- |
+| Semgrep | ERROR→high, WARNING→medium, INFO→low | From rule ID | 70 |
+| CodeQL | error→high, warning→medium, note→low | From rule ID | 90 (high accuracy) |
+| Bandit | HIGH→high, MEDIUM→medium, LOW→low | From test_id | 75 |
+| TruffleHog | All→critical | "hardcoded_secret" | 95 (entropy-based) |
+| Gitleaks | All→high | "hardcoded_secret" | 90 |
+| Trivy | CRITICAL→critical, HIGH→high, etc. | From CVE | 100 (known CVEs) |
+| ZAP | 3→critical, 2→high, 1→medium, 0→info | From alert type | 80 (runtime verified) |
