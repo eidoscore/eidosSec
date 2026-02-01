@@ -38,9 +38,9 @@ RUN add-apt-repository ppa:ondrej/php -y && \
     rm -rf /var/lib/apt/lists/* && \
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install Ruby 3.2
+# Install Ruby (Default Ubuntu 22.04 is Ruby 3.0)
 RUN apt-get update && \
-    apt-get install -y ruby3.2 ruby3.2-dev && \
+    apt-get install -y ruby-full ruby-dev && \
     rm -rf /var/lib/apt/lists/* && \
     gem install bundler
 
