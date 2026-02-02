@@ -221,11 +221,13 @@ def restart_service(service_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/ps")
-def get_docker_ps():
-    """List containers using shell fallback"""
+def get_docker_ps(all: bool = False):
+    """List containers using shell fallback with optional -a flag"""
+    cmd = ["docker", "ps", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"]
+    if all:
+        cmd.insert(2, "-a")
     try:
-        result = subprocess.run(["docker", "ps", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"], 
-                              capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode == 0:
             return {"status": "success", "output": result.stdout}
         return {"status": "error", "error": result.stderr}
