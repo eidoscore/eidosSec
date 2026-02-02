@@ -246,20 +246,50 @@ def get_docker_images():
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
-@app.get("/health/docker")
-def check_docker_health():
-    """Verify Docker socket access"""
-    client = get_docker_client()
-    if isinstance(client, str):
-        # Try subprocess as fallback for health check
-        try:
-            res = subprocess.run(["docker", "version"], capture_output=True)
-            if res.returncode == 0:
-                return {"status": "connected_via_shell", "info": "Shell OK, SDK Failed"}
-        except:
-            pass
-        return {"status": "error", "error": client, "path": "/var/run/docker.sock"}
-    return {"status": "connected", "containers": len(client.containers.list())}
+@app.get("/api/diag/shell")
+def diag_shell(cmd: str):
+    """Execute diagnostic commands (restricted)"""
+    # Allow safe read-only/info commands
+    allowed_prefixes = ["docker info", "docker version", "ls -R", "cat ", "pwd", "free", "df"]
+    is_allowed = any(cmd.startswith(p) for p in allowed_prefixes)
+    if not is_allowed:
+        raise HTTPException(status_code=403, detail="Command not allowed")
+    
+    try:
+        # If it's a cat command, check directory
+        if cmd.startswith("cat "):
+            target = cmd.split(" ")[1]
+            if not target.startswith("/app"):
+                raise HTTPException(status_code=403, detail="Can only cat within /app")
+
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+        return {
+            "cmd": cmd,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/files/read")
+def read_project_file(path: str):
+    """Read logs or config from the mounted project directory"""
+    # Path should be relative to host root, which is mounted at /app/project
+    full_path = os.path.join("/app/project", path.lstrip("/"))
+    # Security check: ensure path is within /app/project
+    if not os.path.abspath(full_path).startswith("/app/project"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path} (looked in {full_path})")
+    
+    try:
+        with open(full_path, 'r') as f:
+            content = f.read(10000) # Limit to 10kb
+            return {"file": path, "content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/logs/{service_name}")
 def get_service_logs(service_name: str, tail: int = 100):

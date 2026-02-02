@@ -161,6 +161,8 @@ services:
     volumes:
       - ./monitoring/data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/status-api.py:/app/status-api.py
+      - ./:/app/project:ro
     restart: unless-stopped
     networks:
       - eidossec-network
