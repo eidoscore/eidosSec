@@ -269,7 +269,7 @@ async def export_scan_findings(
             {
                 "type": f.type,
                 "severity": f.severity,
-                "description": f.description,
+                "description": f.message,
                 "file_path": f.file_path,
                 "line": f.line_start,
                 "confidence": f.confidence,

@@ -73,6 +73,7 @@ def upgrade() -> None:
         sa.Column('owasp_category', sa.String(50)),
         sa.Column('detected_by_tools', JSONB, nullable=False, server_default=sa.text("'[]'::jsonb")),
         sa.Column('raw_outputs', JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column('finding_metadata', JSONB, server_default=sa.text("'{}'::jsonb")),
         sa.Column('status', sa.String(20), server_default='open'),
         sa.Column('assigned_to', sa.String(100)),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.func.now()),

@@ -122,7 +122,7 @@ class FindingBase(BaseModel):
     code_snippet: Optional[str] = None
     cwe_id: Optional[str] = None
     owasp_category: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    finding_metadata: Optional[Dict[str, Any]] = None
 
 
 class FindingResponse(FindingBase):
@@ -137,7 +137,7 @@ class FindingUpdate(BaseModel):
     """Schema for updating a finding"""
     status: Optional[str] = Field(None, pattern="^(open|fixed|false_positive|accepted_risk|wont_fix)$")
     assigned_to: Optional[str] = Field(None, max_length=100)
-    metadata: Optional[Dict[str, Any]] = None
+    finding_metadata: Optional[Dict[str, Any]] = None
 
 
 # Pagination
