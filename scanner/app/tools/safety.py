@@ -1,7 +1,7 @@
 import json
 from typing import List, Optional, Dict, Any
 from app.tools.base import ToolWrapper
-from app.schemas import FindingSchema, SeverityStr
+from app.schemas import FindingSchema, SeverityLevel
 
 class SafetyWrapper(ToolWrapper):
     @property
@@ -27,25 +27,11 @@ class SafetyWrapper(ToolWrapper):
         findings = []
         try:
             # Safety JSON output structure:
-            # {
-            #    "vulnerabilities": [
-            #        {
-            #            "vulnerability_id": "...",
-            #            "package_name": "...",
-            #            "ignored": false,
-            #            "vulnerable_spec": "...",
-            #            "advisory": "...",
-            #            "severity": { "cvssv3": { "base_score": 9.8 } }
-            #        }
-            #    ]
-            # }
-            # Note: The structure might vary slightly between versions, 
-            # safety 3.0 has a specific format.
+            # ... (comments)
             
             data = json.loads(output)
             
-            # Key might be 'vulnerabilities' or direct list in older versions
-            # Safety 3.x usually has top level keys
+            # Key might be 'vulnerabilities' or direct list
             vulnerabilities = data.get("vulnerabilities", [])
             
             if not vulnerabilities and isinstance(data, list):
@@ -67,31 +53,32 @@ class SafetyWrapper(ToolWrapper):
                      cvss_data = severity_obj.get("cvssv3", {}) or severity_obj.get("cvssv2", {})
                      cvss_score = cvss_data.get("base_score", 0.0)
                 
-                severity = SeverityStr.LOW
+                severity = SeverityLevel.LOW
                 if cvss_score >= 9.0:
-                    severity = SeverityStr.CRITICAL
+                    severity = SeverityLevel.CRITICAL
                 elif cvss_score >= 7.0:
-                    severity = SeverityStr.HIGH
+                    severity = SeverityLevel.HIGH
                 elif cvss_score >= 4.0:
-                    severity = SeverityStr.MEDIUM
+                    severity = SeverityLevel.MEDIUM
                 
                 # Fallback if no CVSS but "severity" text field exists
                 if cvss_score == 0.0 and isinstance(severity_obj, str):
                     if "critical" in severity_obj.lower():
-                        severity = SeverityStr.CRITICAL
+                        severity = SeverityLevel.CRITICAL
                     elif "high" in severity_obj.lower():
-                        severity = SeverityStr.HIGH
+                        severity = SeverityLevel.HIGH
                     elif "medium" in severity_obj.lower():
-                        severity = SeverityStr.MEDIUM
+                        severity = SeverityLevel.MEDIUM
 
                 finding = FindingSchema(
-                    tool="safety",
-                    title=f"Vulnerable Dependency: {pkg_name} ({vuln_id})",
-                    description=advisory,
+                    type=f"Vulnerable Dependency: {pkg_name}",
                     severity=severity,
+                    confidence=100, # Safety is usually definitive if ID matches
                     file_path="requirements.txt", # Logic assumes requirements.txt context
-                    line=1, # Can't easily determine line number without parsing requirements.txt manually
-                    column=0,
+                    line_start=1, 
+                    line_end=1,
+                    message=f"{pkg_name} ({vuln_id}): {advisory[:200]}...",
+                    code_snippet=f"{pkg_name} {vuln.get('analyzed_version', '')}",
                     rule_id=vuln_id,
                     metadata={
                         "package": pkg_name,

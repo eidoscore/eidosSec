@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.safety import SafetyWrapper
-from app.schemas import SeverityStr
+from app.schemas import SeverityLevel
 
 @pytest.fixture
 def safety_wrapper():
@@ -59,14 +59,13 @@ def test_parse_output(safety_wrapper):
     assert len(findings) == 2
     
     # Check Critical finding
-    assert findings[0].tool == "safety"
-    assert findings[0].severity == SeverityStr.CRITICAL
-    assert "requests" in findings[0].title
+    assert findings[0].severity == SeverityLevel.CRITICAL
+    assert "requests" in findings[0].type
     assert findings[0].metadata["package"] == "requests"
     
     # Check Medium finding
-    assert findings[1].severity == SeverityStr.MEDIUM
-    assert "flask" in findings[1].title
+    assert findings[1].severity == SeverityLevel.MEDIUM
+    assert "flask" in findings[1].type
 
 def test_parse_output_empty(safety_wrapper):
     findings = safety_wrapper.parse_output("{}")

@@ -34,6 +34,7 @@ class FindingSchema(BaseModel):
     code_snippet: Optional[str] = Field(None, description="Code snippet")
     cwe_id: Optional[str] = Field(None, description="CWE identifier")
     owasp_category: Optional[str] = Field(None, description="OWASP category")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Tool-specific metadata")
     
     class Config:
         use_enum_values = True
