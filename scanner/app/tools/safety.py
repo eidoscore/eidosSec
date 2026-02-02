@@ -1,146 +1,110 @@
-"""Safety Python SCA tool wrapper"""
-from pathlib import Path
-from typing import List, Optional
 import json
-import logging
-
+from typing import List, Optional, Dict, Any
 from app.tools.base import ToolWrapper
-from app.schemas import FindingSchema, SeverityLevel
-from app.utils import sanitize_finding_message
-
-logger = logging.getLogger(__name__)
-
+from app.schemas import FindingSchema, SeverityStr
 
 class SafetyWrapper(ToolWrapper):
-    """Wrapper for Safety - Python dependency vulnerability scanner"""
-    
     @property
     def name(self) -> str:
         return "safety"
-    
+
     @property
     def command(self) -> List[str]:
-        return [
-            "safety",
-            "check",
-            "--json",
-            "--full-report"
-        ]
-    
+        # Running safety via pipx as configured in Dockerfile
+        # Using --json for machine readable output
+        # --full-report might give more details, but check implies basic check
+        return ["pipx", "run", "safety", "check", "--json"]
+
     def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
-        """Run Safety if Python is detected and requirements.txt/Pipfile exists"""
-        if "Python" not in languages:
-            return False
+        """Run if Python is detected or requirements.txt exists"""
+        if "Python" in languages:
+            return True
         
-        # Check for Python dependency files
-        has_requirements = any(self.project_path.glob("requirements*.txt"))
-        has_pipfile = (self.project_path / "Pipfile").exists()
-        has_setup = (self.project_path / "setup.py").exists()
-        has_pyproject = (self.project_path / "pyproject.toml").exists()
-        
-        return has_requirements or has_pipfile or has_setup or has_pyproject
-    
+        req_file = self.project_path / "requirements.txt"
+        return req_file.exists()
+
     def parse_output(self, output: str) -> List[FindingSchema]:
-        """Parse Safety JSON output to findings"""
         findings = []
-        
         try:
+            # Safety JSON output structure:
+            # {
+            #    "vulnerabilities": [
+            #        {
+            #            "vulnerability_id": "...",
+            #            "package_name": "...",
+            #            "ignored": false,
+            #            "vulnerable_spec": "...",
+            #            "advisory": "...",
+            #            "severity": { "cvssv3": { "base_score": 9.8 } }
+            #        }
+            #    ]
+            # }
+            # Note: The structure might vary slightly between versions, 
+            # safety 3.0 has a specific format.
+            
             data = json.loads(output)
             
-            # Safety 3.x output format
-            if isinstance(data, list):
-                # Direct list of vulnerabilities
+            # Key might be 'vulnerabilities' or direct list in older versions
+            # Safety 3.x usually has top level keys
+            vulnerabilities = data.get("vulnerabilities", [])
+            
+            if not vulnerabilities and isinstance(data, list):
                 vulnerabilities = data
-            elif isinstance(data, dict):
-                # Check different possible formats
-                vulnerabilities = data.get("vulnerabilities", [])
-                if not vulnerabilities and "packages" in data:
-                    # Alternative format
-                    vulnerabilities = self._extract_from_packages(data.get("packages", []))
-            else:
-                vulnerabilities = []
-            
+
             for vuln in vulnerabilities:
-                try:
-                    finding = self._parse_vulnerability(vuln)
-                    if finding:
-                        findings.append(finding)
-                except Exception as e:
-                    logger.warning(f"Failed to parse Safety vulnerability: {str(e)}")
+                if vuln.get("ignored", False):
                     continue
+
+                pkg_name = vuln.get("package_name", "unknown-package")
+                vuln_id = vuln.get("vulnerability_id", "unknown-id")
+                advisory = vuln.get("advisory", "")
+                
+                # Try to determine severity from CVSS
+                cvss_score = 0.0
+                severity_obj = vuln.get("severity")
+                if isinstance(severity_obj, dict):
+                     # Try cvssv3 first, then v2
+                     cvss_data = severity_obj.get("cvssv3", {}) or severity_obj.get("cvssv2", {})
+                     cvss_score = cvss_data.get("base_score", 0.0)
+                
+                severity = SeverityStr.LOW
+                if cvss_score >= 9.0:
+                    severity = SeverityStr.CRITICAL
+                elif cvss_score >= 7.0:
+                    severity = SeverityStr.HIGH
+                elif cvss_score >= 4.0:
+                    severity = SeverityStr.MEDIUM
+                
+                # Fallback if no CVSS but "severity" text field exists
+                if cvss_score == 0.0 and isinstance(severity_obj, str):
+                    if "critical" in severity_obj.lower():
+                        severity = SeverityStr.CRITICAL
+                    elif "high" in severity_obj.lower():
+                        severity = SeverityStr.HIGH
+                    elif "medium" in severity_obj.lower():
+                        severity = SeverityStr.MEDIUM
+
+                finding = FindingSchema(
+                    tool="safety",
+                    title=f"Vulnerable Dependency: {pkg_name} ({vuln_id})",
+                    description=advisory,
+                    severity=severity,
+                    file_path="requirements.txt", # Logic assumes requirements.txt context
+                    line=1, # Can't easily determine line number without parsing requirements.txt manually
+                    column=0,
+                    rule_id=vuln_id,
+                    metadata={
+                        "package": pkg_name,
+                        "installed_version": vuln.get("analyzed_version"),
+                        "vulnerable_spec": vuln.get("vulnerable_spec")
+                    }
+                )
+                findings.append(finding)
+                    
+        except json.JSONDecodeError:
+            pass
+        except Exception as e:
+            # Catch parsing errors to prevent crash
+            pass
             
-            return findings
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse Safety JSON output: {str(e)}")
-            return []
-    
-    def _parse_vulnerability(self, vuln: dict) -> Optional[FindingSchema]:
-        """Parse a single Safety vulnerability"""
-        
-        # Extract fields - Safety 3.x format
-        package_name = vuln.get("package_name", "unknown")
-        installed_version = vuln.get("installed_version", "unknown")
-        vulnerable_spec = vuln.get("vulnerable_spec", "")
-        advisory = vuln.get("advisory", "No description")
-        cve = vuln.get("cve", "")
-        severity = vuln.get("severity", "unknown")
-        
-        # Build message
-        message = f"{package_name} {installed_version} - {advisory}"
-        if vulnerable_spec:
-            message += f" (Affected: {vulnerable_spec})"
-        
-        # Map severity
-        severity_level = self._map_severity(severity)
-        
-        # Calculate confidence based on CVE presence
-        confidence = 85 if cve else 75
-        
-        # Create finding type
-        finding_type = f"Vulnerable Dependency: {package_name}"
-        if cve:
-            finding_type += f" ({cve})"
-        
-        return FindingSchema(
-            type=finding_type,
-            severity=severity_level,
-            confidence=confidence,
-            file_path="requirements.txt",  # Generic since Safety scans all deps
-            line_start=1,
-            line_end=1,
-            message=sanitize_finding_message(message),
-            code_snippet=f"{package_name}=={installed_version}",
-            cwe_id=None,  # Safety doesn't provide CWE
-            owasp_category="A06:2021-Vulnerable and Outdated Components"
-        )
-    
-    def _extract_from_packages(self, packages: List[dict]) -> List[dict]:
-        """Extract vulnerabilities from packages format"""
-        vulnerabilities = []
-        for pkg in packages:
-            pkg_vulns = pkg.get("vulnerabilities", [])
-            for vuln in pkg_vulns:
-                vuln["package_name"] = pkg.get("name", "unknown")
-                vuln["installed_version"] = pkg.get("version", "unknown")
-                vulnerabilities.append(vuln)
-        return vulnerabilities
-    
-    def _map_severity(self, safety_severity: str) -> SeverityLevel:
-        """Map Safety severity to standard levels"""
-        if not safety_severity:
-            return SeverityLevel.MEDIUM
-        
-        severity_lower = safety_severity.lower()
-        
-        mapping = {
-            "critical": SeverityLevel.CRITICAL,
-            "high": SeverityLevel.HIGH,
-            "severe": SeverityLevel.HIGH,
-            "medium": SeverityLevel.MEDIUM,
-            "moderate": SeverityLevel.MEDIUM,
-            "low": SeverityLevel.LOW,
-            "unknown": SeverityLevel.MEDIUM
-        }
-        
-        return mapping.get(severity_lower, SeverityLevel.MEDIUM)
+        return findings

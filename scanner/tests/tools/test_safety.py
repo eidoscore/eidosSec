@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.safety import SafetyWrapper
-from app.schemas import FindingSchema, SeverityLevel
+from app.schemas import SeverityStr
 
 @pytest.fixture
 def safety_wrapper():
@@ -14,53 +14,62 @@ def test_safety_name(safety_wrapper):
 
 def test_safety_command(safety_wrapper):
     cmd = safety_wrapper.command
+    assert "pipx" in cmd
     assert "safety" in cmd
     assert "check" in cmd
     assert "--json" in cmd
 
 def test_should_run(safety_wrapper):
-    # Test without Python
-    assert safety_wrapper.should_run(["JavaScript"], None) == False
-    
-    # Test with Python but no dependency files
-    assert safety_wrapper.should_run(["Python"], None) == False
+    assert safety_wrapper.should_run(["Python"], None) == True
+    # Mock requirements.txt existence
+    with patch("pathlib.Path.exists", return_value=True):
+        assert safety_wrapper.should_run([], None) == True
 
 def test_parse_output(safety_wrapper):
-    mock_output = json.dumps([
-        {
-            "package_name": "django",
-            "installed_version": "1.11.29",
-            "vulnerable_spec": "<2.0.0",
-            "advisory": "Cross-site scripting (XSS) vulnerability",
-            "severity": "high",
-            "cve": "CVE-2020-9404"
-        },
-        {
-            "package_name": "requests",
-            "installed_version": "2.22.0",
-            "vulnerable_spec": "<2.28.0",
-            "advisory": "Information disclosure",
-            "severity": "medium"
-        }
-    ])
+    mock_output = json.dumps({
+        "vulnerabilities": [
+            {
+                "vulnerability_id": "CVE-2023-1234",
+                "package_name": "requests",
+                "analyzed_version": "2.0.0",
+                "vulnerable_spec": "<2.31.0",
+                "advisory": "Critical flaw in requests",
+                "severity": {
+                    "cvssv3": {
+                        "base_score": 9.8
+                    }
+                }
+            },
+            {
+                "vulnerability_id": "PYSEC-2023-5678",
+                "package_name": "flask",
+                "analyzed_version": "0.12",
+                "advisory": "Medium issue in flask",
+                "severity": {
+                    "cvssv3": {
+                        "base_score": 5.3
+                    }
+                }
+            }
+        ]
+    })
     
     findings = safety_wrapper.parse_output(mock_output)
     
     assert len(findings) == 2
     
-    # Check high severity finding with CVE
-    assert findings[0].severity == "high"
-    assert "django" in findings[0].type
-    assert "CVE-2020-9404" in findings[0].type
-    assert findings[0].confidence == 85
+    # Check Critical finding
+    assert findings[0].tool == "safety"
+    assert findings[0].severity == SeverityStr.CRITICAL
+    assert "requests" in findings[0].title
+    assert findings[0].metadata["package"] == "requests"
     
-    # Check medium severity finding without CVE
-    assert findings[1].severity == "medium"
-    assert "requests" in findings[1].type
-    assert findings[1].confidence == 75
+    # Check Medium finding
+    assert findings[1].severity == SeverityStr.MEDIUM
+    assert "flask" in findings[1].title
 
 def test_parse_output_empty(safety_wrapper):
-    findings = safety_wrapper.parse_output("[]")
+    findings = safety_wrapper.parse_output("{}")
     assert len(findings) == 0
 
 def test_parse_output_invalid_json(safety_wrapper):
