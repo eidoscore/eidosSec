@@ -10,7 +10,7 @@ services:
     image: eidossec/frontend:latest
     container_name: eidossec-frontend
     ports:
-      - "3000:80"
+      - "3009:80"
     depends_on:
       - backend
     networks:
