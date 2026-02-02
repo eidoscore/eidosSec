@@ -14,6 +14,8 @@ from app.tools.brakeman import BrakemanWrapper
 from app.tools.safety import SafetyWrapper
 from app.tools.npm_audit import NpmAuditWrapper
 from app.tools.composer_audit import ComposerAuditWrapper
+from app.tools.zap import ZapWrapper
+from app.tools.nuclei import NucleiWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -33,6 +35,8 @@ class ScanOrchestrator:
             SafetyWrapper(project_path),
             NpmAuditWrapper(project_path),
             ComposerAuditWrapper(project_path),
+            ZapWrapper(project_path),
+            NucleiWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
