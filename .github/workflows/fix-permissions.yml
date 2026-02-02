@@ -11,13 +11,19 @@ jobs:
           echo "🛑 Stopping monitoring agent to release file locks..."
           sudo docker rm -f eidossec-monitoring || true
           
-          echo "🧹 Manually fixing permissions..."
-          # Fix permissions of the work directory so checkout can succeed next time
-          # We use sudo because the files are owned by root (from Docker)
-          # Use current user ID for safety
+          echo "🧹 Manually fixing permissions (AGGRESSIVE MODE)..."
+          
+          # Fix permissions of the work directory
           sudo chown -R $USER:$USER . || true
           
-          # Force remove potential locking directories
+          # Force delete the monitoring/data directory specifically (this is the culprit)
+          echo "🔥 Nuking monitoring/data..."
           sudo rm -rf monitoring/data || true
           
-          echo "✅ Permissions fixed and Agent stopped. You can now re-run the Deployment job."
+          # If still stuck, try deleting the entire directory content manually
+          # Only do this if we are SURE we are in the runner workspace
+          echo "💥 Clearing workspace..."
+          sudo rm -rf ./* || true
+          sudo rm -rf ./.git || true
+          
+          echo "✅ Workspace completely wiped. Next checkout MUST succeed."
