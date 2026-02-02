@@ -38,28 +38,29 @@ jobs:
         run: |
           if [ ! -f .env ]; then
             cp .env.template .env
-            echo "⚠️  Created .env from template - please configure manually"
+            echo "🔧 Environment setup complete"
           fi
           
       - name: Fix Docker Socket Permissions (Auto-Repair)
         run: |
-          echo "🔧 Ensuring Docker socket is accessible..."
+          echo "🔧 Checking Docker socket..."
           sudo chmod 666 /var/run/docker.sock || true
-          
-      - name: Pull existing images
-        run: |
-          echo "📦 Pulling latest images for project $COMPOSE_PROJECT_NAME..."
-          docker compose pull || true
           
       - name: Build services
         run: |
-          echo "🔨 Building project services (no-cache for monitoring to ensure diagnostics)..."
-          docker compose build --no-cache monitoring
-          docker compose build 2>&1 | tee build.log
+          echo "🔨 Building Monitoring Agent (No-Cache)..."
+          docker compose build --no-cache monitoring 2>&1 | tee monitoring_build.log || {
+            echo "❌ Monitoring build failed"
+            cat monitoring_build.log
+            exit 1
+          }
+          
+          echo "🔨 Building remaining services..."
+          docker compose build 2>&1 | tee full_build.log
           
       - name: Reset project containers
         run: |
-          echo "🛑 Stopping $COMPOSE_PROJECT_NAME services..."
+          echo "🛑 Container Reset..."
           docker compose down --remove-orphans || true
           
       - name: Start Monitoring Agent
