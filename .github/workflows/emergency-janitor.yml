@@ -1,0 +1,18 @@
+name: Emergency Workspace Janitor
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Force Fix Permissions
+        run: |
+          echo "🧹 Runner Janitor is cleaning up..."
+          # Fix permissions of the work directory so checkout can succeed next time
+          # We use sudo because the files are owned by root (from Docker)
+          sudo chown -R $(whoami):$(whoami) . || true
+          sudo rm -rf monitoring/data || true
+          echo "✅ Permissions fixed. Next checkout should succeed."
