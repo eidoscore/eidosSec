@@ -53,7 +53,8 @@ jobs:
           
       - name: Build services
         run: |
-          echo "🔨 Building project services (sequential for stability)..."
+          echo "🔨 Building project services (no-cache for monitoring to ensure diagnostics)..."
+          docker compose build --no-cache monitoring
           docker compose build 2>&1 | tee build.log
           
       - name: Reset project containers
