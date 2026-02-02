@@ -80,3 +80,49 @@ jobs:
         run: |
           echo "🧹 Cleaning up old images..."
           docker image prune -f --filter "until=48h"
+
+      - name: Deploy to Server
+        if: success()
+        run: |
+          echo "🚀 Deploying to server..."
+          
+          # Report deployment start
+          curl -X POST http://localhost:9000/api/deployments \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"deployment_id\": \"${{ github.sha }}\",
+              \"status\": \"deploying\",
+              \"started_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"branch\": \"${{ github.ref_name }}\"
+            }" || true
+            
+          # Stop ONLY the scanner service if running
+          docker compose stop scanner || true
+          
+          # Start scanner in background (detached)
+          # Capture output to separate log file
+          if docker compose up -d scanner > deploy.log 2>&1; then
+            echo "✅ Deployment successful"
+            
+            curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"status\": \"success\",
+                \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }" || true
+          else
+            echo "❌ Deployment failed"
+            cat deploy.log
+            
+            # Capture error log
+            DEPLOY_ERROR=$(cat deploy.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+            
+            curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"status\": \"failed\",
+                \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+                \"error\": \"$DEPLOY_ERROR\"
+              }" || true
+            exit 1
+          fi
