@@ -158,6 +158,7 @@ def get_current_status():
     return {
         "current_build": builds[0] if builds else None,
         "current_deployment": deployments[0] if deployments else None,
+        "docker_connected": not isinstance(get_docker_client(), str),
         "timestamp": datetime.utcnow().isoformat()
     }
 
@@ -201,22 +202,54 @@ def restart_service(service_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/ps")
+def get_docker_ps():
+    """List containers using shell fallback"""
+    try:
+        result = subprocess.run(["docker", "ps", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            return {"status": "success", "output": result.stdout}
+        return {"status": "error", "error": result.stderr}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
 @app.get("/health/docker")
 def check_docker_health():
     """Verify Docker socket access"""
     client = get_docker_client()
     if isinstance(client, str):
+        # Try subprocess as fallback for health check
+        try:
+            res = subprocess.run(["docker", "version"], capture_output=True)
+            if res.returncode == 0:
+                return {"status": "connected_via_shell", "info": "Shell OK, SDK Failed"}
+        except:
+            pass
         return {"status": "error", "error": client, "path": "/var/run/docker.sock"}
     return {"status": "connected", "containers": len(client.containers.list())}
 
 @app.get("/api/logs/{service_name}")
 def get_service_logs(service_name: str, tail: int = 100):
-    """Retrieve logs for a service"""
+    """Retrieve logs for a service with shell fallback"""
+    # 1. Try Shell Fallback First (often more reliable in these environments)
+    try:
+        # Find container name that matches service_name
+        ps_res = subprocess.run(["docker", "ps", "-a", "--filter", f"name={service_name}", "--format", "{{.Names}}"], 
+                              capture_output=True, text=True)
+        if ps_res.returncode == 0 and ps_res.stdout.strip():
+            full_name = ps_res.stdout.strip().split('\n')[0]
+            log_res = subprocess.run(["docker", "logs", "--tail", str(tail), full_name], 
+                                   capture_output=True, text=True)
+            if log_res.returncode == 0:
+                return {"service": full_name, "logs": log_res.stdout, "method": "shell"}
+    except Exception as e:
+        print(f"Shell log fallback failed: {e}")
+
+    # 2. Try SDK (as second option)
     client = get_docker_client()
     if isinstance(client, str):
-        raise HTTPException(status_code=500, detail=f"Docker connection failed: {client}")
-    if not client:
-        raise HTTPException(status_code=500, detail="Docker unavailable")
+        raise HTTPException(status_code=500, detail=f"Docker SDK failed and shell fallback failed. SDK Error: {client}")
     
     try:
         containers = client.containers.list(all=True)
@@ -230,7 +263,7 @@ def get_service_logs(service_name: str, tail: int = 100):
             raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
         
         logs = target.logs(tail=tail).decode('utf-8', errors='ignore')
-        return {"service": target.name, "logs": logs}
+        return {"service": target.name, "logs": logs, "method": "sdk"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
