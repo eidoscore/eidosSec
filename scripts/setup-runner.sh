@@ -35,6 +35,11 @@ if ! id "runner" &>/dev/null; then
     echo "export LC_ALL=en_US.UTF-8" >> /home/runner/.bashrc
     echo "export LANG=en_US.UTF-8" >> /home/runner/.bashrc
     echo "export LANGUAGE=en_US.UTF-8" >> /home/runner/.bashrc
+    
+    # Configure passwordless sudo for runner
+    echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner
+    chmod 0440 /etc/sudoers.d/runner
+    
     echo "✅ User 'runner' created and added to 'docker' group"
 fi
 
