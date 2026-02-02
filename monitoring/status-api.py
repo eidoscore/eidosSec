@@ -9,6 +9,8 @@ from typing import Optional, List
 from datetime import datetime
 import json
 import os
+import docker
+import subprocess
 
 app = FastAPI(title="eidosSec CI/CD Monitor", version="1.0.0")
 
@@ -158,6 +160,65 @@ def get_current_status():
         "current_deployment": deployments[0] if deployments else None,
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+# -----------------------------------------------------------------------------
+# Autonomous Management Endpoints
+# -----------------------------------------------------------------------------
+
+def get_docker_client():
+    try:
+        return docker.from_env()
+    except Exception as e:
+        print(f"Error connecting to Docker: {e}")
+        return None
+
+@app.post("/api/action/restart/{service_name}")
+def restart_service(service_name: str):
+    """Restart a docker container by service name fragment"""
+    client = get_docker_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="Docker unavailable")
+    
+    try:
+        # Find container by name (e.g., 'backend' -> 'eidossec-backend')
+        containers = client.containers.list(all=True)
+        target = None
+        for c in containers:
+            if service_name in c.name:
+                target = c
+                break
+        
+        if not target:
+            raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
+        
+        target.restart()
+        return {"message": f"Service {target.name} restarted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/logs/{service_name}")
+def get_service_logs(service_name: str, tail: int = 100):
+    """Retrieve logs for a service"""
+    client = get_docker_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="Docker unavailable")
+    
+    try:
+        containers = client.containers.list(all=True)
+        target = None
+        for c in containers:
+            if service_name in c.name:
+                target = c
+                break
+        
+        if not target:
+            raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
+        
+        logs = target.logs(tail=tail).decode('utf-8', errors='ignore')
+        return {"service": target.name, "logs": logs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
