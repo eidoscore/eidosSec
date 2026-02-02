@@ -1,129 +1,248 @@
-# Month 3 Implementation Task - eidosSec UI + Launch
+# Month 4 Implementation Task - Stabilize + PRO Prep
 
-**Phase:** Month 3 (UI + Launch)  
-**Duration:** 84 hours (~21 hours/week)  
-**Goal:** FREE tier ready for public launch  
+**Phase:** Month 4 (Stability & PRO Infrastructure)
+**Duration:** 67 hours remaining (~17 hours/week)
+**Goal:** Stable FREE tier + infrastructure ready for 60+ tools
+**Status:** NO PUBLIC LAUNCH - Internal development only
 
 ---
 
 ## Reference Documents
 
-Before starting, review these documents:
-- ✅ `milestone_development.md` - Month 3 Week 1-4 breakdown (lines 285-332)
-- ✅ `Implementarion-spec.md` - Section 4 (Backend API), Section 5 (Frontend)
-- ✅ `MasterPlan.md` - FREE tier features, user personas
-- ✅ `Business_model.md` - FREE tier value proposition
+- `milestone_development.md` - Month 4 breakdown
+- `docs/PRO_TOOLS_MATRIX.md` - Full 63 tools list
+- `docs/PRO_LICENSE_SPEC.md` - License system design
+- `docs/ONBOARDING_OPTIMIZATION.md` - UX improvements
 
 ---
 
-## Week 1-2: Core UI Components (57 hours)
+## Week 2: Onboarding Optimization (20 hours)
 
-### Backend APIs Required
+### 2.1 Platform-Aware Path Input (2h)
+**File:** `frontend/src/pages/NewProject.tsx`
 
-| API Endpoint | Method | Description | Hours | Status |
-|-------------|--------|-------------|-------|--------|
-| `/api/v1/projects` | POST | Create project | 3h | ✅ |
-| `/api/v1/projects` | GET | List projects | 2h | ✅ |
-| `/api/v1/projects/{id}` | GET | Get project details | 2h | ✅ |
-| `/api/v1/projects/{id}` | DELETE | Delete project | 2h | ✅ |
-| `/api/v1/scans` | POST | Start scan (enqueue Celery) | 4h | ✅ |
-| `/api/v1/scans/{id}` | GET | Get scan status | 2h | ✅ |
-| `/api/v1/scans/{id}/findings` | GET | List findings (paginated) | 4h | ✅ |
-| `/api/v1/findings/{id}` | GET | Finding detail | 2h | ✅ |
-| `/api/v1/findings/{id}` | PATCH | Update finding status | 2h | ✅ |
-| `/ws/scan-progress` | WS | WebSocket for real-time updates | 4h | ✅ |
+| Task | Hours | Status |
+|------|-------|--------|
+| Detect OS via `navigator.platform` | 0.5h | ⏸️ |
+| Update placeholder based on OS | 0.5h | ⏸️ |
+| Add path format hint text | 0.5h | ⏸️ |
+| Test on Windows + Linux | 0.5h | ⏸️ |
 
-**Total Backend:** 27 hours
+### 2.2 Auto-Scan Checkbox (3h)
+**Files:** `frontend/src/pages/NewProject.tsx`, `backend/app/routers/projects.py`
 
-### Frontend Components Required
+| Task | Hours | Status |
+|------|-------|--------|
+| Add checkbox UI in Step 3 | 1h | ⏸️ |
+| Pass `auto_scan` flag to create endpoint | 0.5h | ⏸️ |
+| Backend: trigger scan after project creation | 1h | ⏸️ |
+| Redirect to scan page if auto_scan=true | 0.5h | ⏸️ |
 
-| Component | Description | Hours | Status |
-|-----------|-------------|-------|--------|
-| **Dashboard Page** | Project list, stats, "New Project" button | 6h | ✅ |
-| **Add Project Wizard** | 3-step: path → detect language → confirm | 8h | ✅ |
-| **Scan Progress Page** | Progress bar, tool status, polling/WebSocket | 8h | ✅ |
-| **Results Page** | Findings list, severity badges, filters | 10h | ✅ |
-| **Finding Detail Modal** | Code snippet, CWE info, remediation | 8h | ✅ |
+### 2.3 Zero Findings Celebration (2h)
+**File:** `frontend/src/pages/ScanDetails.tsx`
 
-**Total Frontend:** 40 hours
+| Task | Hours | Status |
+|------|-------|--------|
+| Add success state UI component | 1h | ⏸️ |
+| Show when findings.length === 0 && status === 'completed' | 0.5h | ⏸️ |
+| Add "Run Deep Scan" CTA (for future PRO) | 0.5h | ⏸️ |
+
+### 2.4 Real Language Detection Endpoint (6h)
+**Files:** `backend/app/routers/projects.py`, `backend/app/services/detector.py`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Create `POST /api/v1/projects/detect` endpoint | 1h | ⏸️ |
+| Implement language detection (file extensions) | 2h | ⏸️ |
+| Implement framework detection (config files) | 2h | ⏸️ |
+| Update frontend to call detect endpoint | 1h | ⏸️ |
+
+### 2.5 Tool Progress Visibility (5h)
+**Files:** `frontend/src/pages/ScanDetails.tsx`, WebSocket messages
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Update WebSocket message format to include tool list | 1h | ⏸️ |
+| Create ToolProgressList component | 2h | ⏸️ |
+| Show tool status (pending/running/completed/failed) | 1.5h | ⏸️ |
+| Style with icons and animations | 0.5h | ⏸️ |
+
+### 2.6 Error Handling Improvements (2h)
+**Files:** Multiple frontend components
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Standardize error toast component | 1h | ⏸️ |
+| Add user-friendly error messages | 0.5h | ⏸️ |
+| Add retry buttons where appropriate | 0.5h | ⏸️ |
 
 ---
 
-## Week 3-4: Polish + Launch Prep (27 hours)
+## Week 3: Documentation & Content (22 hours)
 
-| Task | Description | Hours | Status |
-|------|-------------|-------|--------|
-| **Export JSON** | Export findings to JSON | 4h | ✅ |
-| **Documentation Site** | Docusaurus setup (Simple MD) | 8h | ✅ |
-| **README Polish** | GIFs, screenshots, badges | 4h | ✅ |
-| **Landing Page** | Hero, features, CTA | 6h | ✅ |
-| **Launch Video** | Loom 3-min demo | 5h | ⏸️ |
+### 3.1 Installation Guide Polish (4h)
+**File:** `docs/installation.md`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Windows installation steps | 1h | ⏸️ |
+| Linux (Ubuntu/Debian) steps | 1h | ⏸️ |
+| macOS steps | 1h | ⏸️ |
+| Troubleshooting section | 1h | ⏸️ |
+
+### 3.2 API Documentation (6h)
+**File:** `backend/app/main.py`, OpenAPI config
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Add OpenAPI descriptions to all endpoints | 2h | ⏸️ |
+| Add request/response examples | 2h | ⏸️ |
+| Generate and review Swagger UI | 1h | ⏸️ |
+| Export OpenAPI JSON for docs site | 1h | ⏸️ |
+
+### 3.3 Tool Documentation (6h)
+**File:** `docs/tools.md` (new)
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Document all 15 FREE tools | 3h | ⏸️ |
+| What each tool detects | 1h | ⏸️ |
+| Sample findings for each | 1h | ⏸️ |
+| Links to official docs | 1h | ⏸️ |
+
+### 3.4 Blog Post Polish (4h)
+**File:** `docs/blog/why-startups-need-security-scanner.md`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Review and polish existing draft | 2h | ✅ Created |
+| Add screenshots | 1h | ⏸️ |
+| SEO optimization (meta, keywords) | 1h | ⏸️ |
+
+### 3.5 README Polish (2h)
+**File:** `README.md`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Update feature list | 0.5h | ⏸️ |
+| Add GIF demo | 1h | ⏸️ |
+| Add badges (build, license, etc.) | 0.5h | ⏸️ |
 
 ---
 
-## Implementation Order (Priority)
+## Week 4: PRO Infrastructure Prep (25 hours)
 
-### Phase 1: Backend Foundation (Days 1-3)
-1. Create project service + router
-2. Create scan service + router  
-3. Create findings service + router
-4. WebSocket endpoint for progress
+### 4.1 Tool Wrapper Base Class (6h)
+**File:** `scanner/tools/base.py`
 
-### Phase 2: Frontend Core (Days 4-8)
-1. Dashboard page with project list
-2. Add Project wizard
-3. Scan progress with polling
-4. Results page with finding list
-5. Finding detail modal
+| Task | Hours | Status |
+|------|-------|--------|
+| Create abstract `BaseTool` class | 2h | ⏸️ |
+| Define standard interface: `run()`, `parse()`, `normalize()` | 2h | ⏸️ |
+| Add tier checking: `is_pro_tool` property | 1h | ⏸️ |
+| Migrate existing tools to new base class | 1h | ⏸️ |
 
-### Phase 3: Integration (Days 9-10)
-1. Connect frontend to backend APIs
-2. Test end-to-end scan flow
-3. Fix bugs
+### 4.2 Output Normalizer (6h)
+**File:** `scanner/normalizer.py`
 
-### Phase 4: Polish (Days 11-14)
-1. Export functionality
-2. Documentation
-3. README + Landing page
-4. Launch video
+| Task | Hours | Status |
+|------|-------|--------|
+| Define internal Finding schema | 1h | ⏸️ |
+| Create SARIF parser | 2h | ⏸️ |
+| Create JSON parser (generic) | 1h | ⏸️ |
+| Map CWE/OWASP categories | 2h | ⏸️ |
+
+### 4.3 License Check Scaffolding (4h)
+**File:** `backend/app/services/license_service.py`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Create LicenseService skeleton | 1h | ⏸️ |
+| Implement `get_current_tier()` (returns "free" for now) | 1h | ⏸️ |
+| Implement `is_tool_allowed(tool_name)` | 1h | ⏸️ |
+| Add `@require_pro` decorator for future use | 1h | ⏸️ |
+
+### 4.4 Docker Multi-Stage Prep (5h)
+**File:** `scanner/Dockerfile`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Design multi-stage build structure | 1h | ⏸️ |
+| Stage 1: Python tools | 1h | ⏸️ |
+| Stage 2: Go tools | 1h | ⏸️ |
+| Stage 3: Ruby/Node tools | 1h | ⏸️ |
+| Test build and measure size | 1h | ⏸️ |
+
+### 4.5 CI/CD for Scanner Image (4h)
+**File:** `.github/workflows/scanner.yml`
+
+| Task | Hours | Status |
+|------|-------|--------|
+| Update workflow for multi-stage build | 1h | ⏸️ |
+| Add caching for faster builds | 1h | ⏸️ |
+| Push to GitHub Container Registry | 1h | ⏸️ |
+| Add image size check (fail if > 8GB) | 1h | ⏸️ |
 
 ---
 
 ## Success Criteria
 
-- ✅ User can create project via UI
-- ✅ User can start Quick Scan, see real-time progress
-- ✅ Results display after scan completes (5-10 min)
-- ✅ All 73 unit tests still passing
-- ✅ CI/CD build successful
-- ✅ Documentation complete (README, installation guide)
+- ✅ All 15 FREE tools working reliably (no crashes)
+- ✅ Time to first scan < 5 minutes
+- ✅ Onboarding improvements deployed
+- ✅ Documentation complete and accurate
+- ✅ Tool wrapper architecture ready for Month 5 expansion
+- ✅ License service skeleton in place
+- ✅ Docker multi-stage build working
 
 ---
 
-## Notes for AI Agent
+## Implementation Order (Start Here)
 
-**When implementing:**
-1. Start with backend APIs first (they're needed by frontend)
-2. Use existing schemas from `scanner/app/schemas.py` as reference
-3. Frontend uses: React 18 + TypeScript + TailwindCSS + shadcn/ui
-4. Backend uses: FastAPI + SQLAlchemy + Celery + Redis
-5. WebSocket for real-time scan progress updates
-6. All API responses follow Pydantic schemas in Implementarion-spec.md Section 4.5
+### Priority 1: Quick Wins (Today)
+1. ⏸️ Platform-aware path input (2h)
+2. ⏸️ Auto-scan checkbox (3h)
+3. ⏸️ Zero findings celebration (2h)
 
-**Testing:**
-- Backend: `pytest backend/tests/`
-- Frontend: `npm test` (if tests exist)
-- Integration: Manual test via UI
+### Priority 2: Backend Improvements
+4. ⏸️ Real language detection endpoint (6h)
+5. ⏸️ Tool progress visibility (5h)
+6. ⏸️ Error handling improvements (2h)
 
-**Commit message format:**
-```
-feat: Add [feature name]
+### Priority 3: Documentation
+7. ⏸️ Installation guide (4h)
+8. ⏸️ API documentation (6h)
+9. ⏸️ Tool documentation (6h)
+10. ⏸️ README polish (2h)
 
-- [Brief description]
-- [Another point]
-```
+### Priority 4: PRO Infrastructure
+11. ⏸️ Tool wrapper base class (6h)
+12. ⏸️ Output normalizer (6h)
+13. ⏸️ License check scaffolding (4h)
+14. ⏸️ Docker multi-stage prep (5h)
+15. ⏸️ CI/CD updates (4h)
 
 ---
 
-**Created:** 2026-02-02  
-**Next Review:** After Week 2 completion
+## Tech Stack Reference
+
+**Frontend:**
+- React 18 + TypeScript
+- TailwindCSS + shadcn/ui
+- TanStack Query (React Query)
+- React Router DOM
+
+**Backend:**
+- FastAPI + Python 3.11
+- SQLAlchemy + Alembic
+- Celery + Redis
+- WebSocket (fastapi-websocket)
+
+**Scanner:**
+- Docker container
+- 15 security tools (see PRO_TOOLS_MATRIX.md)
+
+---
+
+**Created:** 2026-02-03
+**Last Updated:** 2026-02-03
