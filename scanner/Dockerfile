@@ -92,6 +92,14 @@ WORKDIR /app
 # Set PATH to include user site-packages
 ENV PATH="/root/.local/bin:${PATH}"
 
+# Install pipx for isolated tool environments
+RUN python3 -m pip install --no-cache-dir pipx && \
+    python3 -m pipx ensurepath
+
+# Install Safety (SCA for Python) via pipx to avoid Pydantic conflict
+ENV PATH="/root/.local/bin:$PATH"
+RUN pipx install safety==3.0.1
+
 # Copy requirements and install Python packages
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --user -r requirements.txt
