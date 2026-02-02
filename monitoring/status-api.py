@@ -131,14 +131,21 @@ def create_deployment(deployment: DeploymentStatus):
 
 @app.patch("/api/deployments/{deployment_id}")
 def update_deployment(deployment_id: str, update: dict):
-    """Update deployment status"""
+    """Update deployment status (auto-create if missing)"""
     file_path = f"{DATA_DIR}/deploy_{deployment_id}.json"
     
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Deployment not found")
-    
-    with open(file_path, 'r') as f:
-        data = json.load(f)
+    data = {}
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    else:
+        print(f"📡 Auto-initializing missing deployment: {deployment_id}")
+        data = {
+            "deployment_id": deployment_id,
+            "status": "recovering",
+            "started_at": datetime.utcnow().isoformat() + "Z",
+            "branch": "unknown"
+        }
     
     data.update(update)
     
