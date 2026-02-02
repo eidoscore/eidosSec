@@ -46,19 +46,36 @@ jobs:
           echo "🔨 Building all services..."
           docker-compose build --parallel 2>&1 | tee build.log
           
-      - name: Run database migrations
-        run: |
-          echo "🗄️  Running database migrations..."
-          docker-compose run --rm backend alembic upgrade head || true
-
       - name: Reset containers
         run: |
           echo "🛑 Stopping all containers for clean reset..."
           docker-compose down --remove-orphans || true
           
-      - name: Start services
+      - name: Start Monitoring Agent
         run: |
-          echo "🚀 Starting services..."
+          echo "👀 Starting autonomous monitoring agent..."
+          docker-compose up -d monitoring
+          
+          echo "⏳ Waiting for monitoring agent..."
+          timeout 60 sh -c 'until curl -f http://localhost:9000/health; do sleep 2; done' || {
+            echo "❌ Monitoring agent failed to start"
+            # We continue anyway to try other services, but reporting might fail
+          }
+          
+      - name: Run database migrations
+        run: |
+          echo "🚀 Starting database..."
+          docker-compose up -d postgres redis
+          
+          echo "⏳ Waiting for database..."
+          sleep 10
+          
+          echo "🗄️  Running database migrations..."
+          docker-compose run --rm backend alembic upgrade head || true
+          
+      - name: Start remaining services
+        run: |
+          echo "🚀 Starting all services..."
           docker-compose up -d
           
       - name: Wait for health checks
