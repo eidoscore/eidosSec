@@ -154,6 +154,7 @@ services:
     build:
       context: ./monitoring
       dockerfile: Dockerfile.monitor
+    image: eidossec/monitoring:latest
     container_name: eidossec-monitoring
     ports:
       - "9000:9000"

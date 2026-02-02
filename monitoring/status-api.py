@@ -22,9 +22,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple file-based storage (can upgrade to Redis later)
-DATA_DIR = "/app/data"
+# Simple file-based storage
+DATA_DIR = os.path.join(os.getcwd(), "data")
+print(f"📂 Initializing data directory at: {DATA_DIR}")
 os.makedirs(DATA_DIR, exist_ok=True)
+if not os.access(DATA_DIR, os.W_OK):
+    print(f"⚠️  WARNING: Data directory {DATA_DIR} is NOT writable!")
+else:
+    print(f"✅ Data directory ready.")
 
 class BuildStatus(BaseModel):
     build_id: str
@@ -113,9 +118,15 @@ def list_builds(limit: int = 10):
 @app.post("/api/deployments")
 def create_deployment(deployment: DeploymentStatus):
     """Record new deployment start"""
+    os.makedirs(DATA_DIR, exist_ok=True)
     file_path = f"{DATA_DIR}/deploy_{deployment.deployment_id}.json"
-    with open(file_path, 'w') as f:
-        json.dump(deployment.dict(), f, indent=2)
+    print(f"📝 Recording deployment: {file_path}")
+    try:
+        with open(file_path, 'w') as f:
+            json.dump(deployment.dict(), f, indent=2)
+    except Exception as e:
+        print(f"❌ Failed to write deployment log: {e}")
+        raise HTTPException(status_code=500, detail=f"Write failed: {str(e)}")
     return {"message": "Deployment recorded", "deployment_id": deployment.deployment_id}
 
 @app.patch("/api/deployments/{deployment_id}")
@@ -269,4 +280,6 @@ def get_service_logs(service_name: str, tail: int = 100):
 
 if __name__ == "__main__":
     import uvicorn
+    print("🚀 Starting eidosSec Monitoring Agent...")
+    print(f"📍 Routes registered: /api/status, /api/builds, /api/deployments, /api/ps, /health/docker, /api/logs")
     uvicorn.run(app, host="0.0.0.0", port=9000)
