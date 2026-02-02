@@ -46,6 +46,11 @@ jobs:
           echo "🔨 Building all services..."
           docker-compose build --parallel 2>&1 | tee build.log
           
+      - name: Cleanup legacy containers
+        run: |
+          echo "🧹 Removing legacy monitoring container..."
+          docker rm -f eidossec-cicd-monitor || true
+          
       - name: Reset containers
         run: |
           echo "🛑 Stopping all containers for clean reset..."
@@ -59,7 +64,7 @@ jobs:
           echo "⏳ Waiting for monitoring agent..."
           timeout 60 sh -c 'until curl -f http://localhost:9000/health; do sleep 2; done' || {
             echo "❌ Monitoring agent failed to start"
-            # We continue anyway to try other services, but reporting might fail
+            docker-compose logs monitoring
           }
           
       - name: Run database migrations
@@ -110,11 +115,18 @@ jobs:
       - name: Report deployment failure
         if: failure()
         run: |
+          # Capture build log or deploy log
+          ERROR_LOG="Deployment failed."
+          if [ -f build.log ]; then
+            ERROR_LOG=$(tail -n 20 build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          fi
+          
           curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
             -H "Content-Type: application/json" \
             -d "{
               \"status\": \"failed\",
-              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              \"completed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+              \"error\": \"$ERROR_LOG\"
             }" || true
           
           echo "📋 Container logs:"
