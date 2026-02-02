@@ -9,6 +9,7 @@ ENV PATH="/root/.local/bin:$PATH"
 # Install system dependencies + language runtimes
 RUN apt-get update && apt-get install -y \
     python3.11 \
+    python3.11-venv \
     python3-pip \
     git \
     curl \
