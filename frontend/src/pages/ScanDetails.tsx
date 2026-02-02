@@ -70,7 +70,7 @@ export default function ScanDetails() {
         return () => {
             ws.close()
         }
-    }, [id, scan?.status, refetchScan])
+    }, [id, scan, refetchScan])
 
     const handleExport = async () => {
         try {
