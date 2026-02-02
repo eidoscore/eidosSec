@@ -23,7 +23,7 @@ export default function ScanDetails() {
     // Fetch Scan Details
     const { data: scanData, isLoading: isScanLoading, refetch: refetchScan } = useQuery({
         queryKey: ['scan', id],
-        queryFn: () => api.get(`/scans/${id}`),
+        queryFn: () => api.get(`/scans/${id}`) as Promise<any>,
         refetchInterval: (query) => {
             const data = query.state.data as any
             return data?.data?.status === 'in_progress' ? 1000 : false
@@ -35,7 +35,7 @@ export default function ScanDetails() {
     // Fetch Findings (only if completed)
     const { data: findingsData } = useQuery({
         queryKey: ['scan-findings', id],
-        queryFn: () => api.get(`/scans/${id}/findings`),
+        queryFn: () => api.get(`/scans/${id}/findings`) as Promise<any>,
         enabled: scan?.status === 'completed'
     })
 

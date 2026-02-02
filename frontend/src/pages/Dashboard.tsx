@@ -18,13 +18,13 @@ interface Project {
 export default function Dashboard() {
     const { data: health, isLoading: healthLoading } = useQuery({
         queryKey: ['health'],
-        queryFn: () => api.get('/health'),
+        queryFn: () => api.get('/health') as Promise<any>,
         refetchInterval: 30000,
     })
 
     const { data: projectsData, isLoading: projectsLoading } = useQuery({
         queryKey: ['projects'],
-        queryFn: () => api.get('/projects'),
+        queryFn: () => api.get('/projects') as Promise<any>,
     })
 
     const projects = projectsData?.data || []

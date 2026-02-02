@@ -25,12 +25,13 @@
         "baseUrl": ".",
         "paths": {
             "@/*": [
-                "./src/*"
+                "src/*"
             ]
         }
     },
     "include": [
-        "src"
+        "src/**/*",
+        "env.d.ts"
     ],
     "references": [
         {

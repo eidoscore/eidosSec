@@ -21,7 +21,7 @@ export default function ProjectDetails() {
 
     const startScanMutation = useMutation({
         mutationFn: () => api.post('/scans', { project_id: id, scan_type: 'full' }),
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
             const scanId = data.data.id
             navigate(`/scans/${scanId}`)
         }
