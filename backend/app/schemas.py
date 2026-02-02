@@ -122,6 +122,7 @@ class FindingBase(BaseModel):
     code_snippet: Optional[str] = None
     cwe_id: Optional[str] = None
     owasp_category: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class FindingResponse(FindingBase):

@@ -74,6 +74,7 @@ class Finding(Base):
     owasp_category = Column(String(50))
     detected_by_tools = Column(JSONB, nullable=False, default=list)
     raw_outputs = Column(JSONB, default=dict, nullable=False)
+    metadata = Column(JSONB, default=dict)
     status = Column(String(20), default="open", index=True)
     assigned_to = Column(String(100))
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
