@@ -20,6 +20,12 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     
     steps:
+      - name: Clean Workspace (Pre-Checkout)
+        run: |
+          echo "🧹 Pre-cleaning workspace to fix EACCES issues..."
+          sudo docker rm -f eidossec-monitoring || true
+          sudo chown -R $USER:$USER . || true
+          
       - name: Checkout code
         uses: actions/checkout@v4
         
