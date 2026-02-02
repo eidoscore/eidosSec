@@ -1,0 +1,11 @@
+name: Test Runner Connectivity
+on:
+  push:
+    paths:
+      - 'RUNNER_TEST'
+jobs:
+  test:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Ping
+        run: echo "Runner is ALIVE at $(date)"
