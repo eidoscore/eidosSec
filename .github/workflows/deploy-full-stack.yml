@@ -25,6 +25,7 @@ jobs:
           echo "🧹 Pre-cleaning workspace to fix EACCES issues..."
           sudo docker rm -f eidossec-monitoring || true
           sudo chown -R $USER:$USER . || true
+          sudo rm -rf monitoring/data || true
           
       - name: Checkout code
         uses: actions/checkout@v4
