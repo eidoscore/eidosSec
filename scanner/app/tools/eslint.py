@@ -1,7 +1,7 @@
 import json
 from typing import List, Optional, Dict, Any
 from app.tools.base import ToolWrapper
-from app.schemas import FindingSchema, SeverityStr
+from app.schemas import FindingSchema, SeverityLevel
 
 class EslintWrapper(ToolWrapper):
     @property
@@ -45,16 +45,15 @@ class EslintWrapper(ToolWrapper):
                     message = msg.get("message", "")
                     
                     finding = FindingSchema(
-                        tool="eslint",
-                        title=f"{rule_id}: {message[:100]}",
-                        description=message,
+                        type=f"eslint:{rule_id}",
                         severity=severity,
+                        confidence=85 if severity == SeverityLevel.HIGH else (60 if severity == SeverityLevel.MEDIUM else 40),
                         file_path=file_path,
-                        line=line,
-                        column=column,
-                        rule_id=rule_id,
-                        # ESLint doesn't provide CWEs natively without plugins mapping
-                        # We could map common security rules here if needed
+                        line_start=line if line > 0 else 1,
+                        line_end=line if line > 0 else 1,
+                        message=message,
+                        cwe_id=None,
+                        owasp_category=None
                     )
                     findings.append(finding)
                     
@@ -64,10 +63,10 @@ class EslintWrapper(ToolWrapper):
             
         return findings
 
-    def _map_severity(self, eslint_severity: int) -> SeverityStr:
+    def _map_severity(self, eslint_severity: int) -> SeverityLevel:
         # ESLint: 1 = Warning, 2 = Error
         if eslint_severity == 2:
-            return SeverityStr.HIGH
+            return SeverityLevel.HIGH
         elif eslint_severity == 1:
-            return SeverityStr.MEDIUM
-        return SeverityStr.LOW
+            return SeverityLevel.MEDIUM
+        return SeverityLevel.LOW

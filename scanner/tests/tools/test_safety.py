@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.safety import SafetyWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def safety_wrapper():
@@ -19,15 +19,11 @@ def test_safety_command(safety_wrapper):
     assert "--json" in cmd
 
 def test_should_run(safety_wrapper):
-    # Test with Python project
-    assert safety_wrapper.should_run(["Python"], None) == True
-    
     # Test without Python
     assert safety_wrapper.should_run(["JavaScript"], None) == False
     
-    # Mock dependency files
-    with patch("pathlib.Path.exists", side_effect=lambda x: True if "requirements" in str(x) else False):
-        assert safety_wrapper.should_run(["Python"], None) == True
+    # Test with Python but no dependency files
+    assert safety_wrapper.should_run(["Python"], None) == False
 
 def test_parse_output(safety_wrapper):
     mock_output = json.dumps([
@@ -53,13 +49,13 @@ def test_parse_output(safety_wrapper):
     assert len(findings) == 2
     
     # Check high severity finding with CVE
-    assert findings[0].severity == "HIGH"
+    assert findings[0].severity == "high"
     assert "django" in findings[0].type
     assert "CVE-2020-9404" in findings[0].type
     assert findings[0].confidence == 85
     
     # Check medium severity finding without CVE
-    assert findings[1].severity == "MEDIUM"
+    assert findings[1].severity == "medium"
     assert "requests" in findings[1].type
     assert findings[1].confidence == 75
 

@@ -3,7 +3,7 @@ import json
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 from app.tools.eslint import EslintWrapper
-from app.schemas import SeverityStr
+from app.schemas import SeverityLevel
 
 @pytest.fixture
 def eslint_wrapper():
@@ -51,15 +51,15 @@ def test_parse_output(eslint_wrapper):
     assert len(findings) == 2
     
     # Check first finding (Error -> HIGH)
-    assert findings[0].tool == "eslint"
-    assert "security/detect-eval-with-expression" in findings[0].title
-    assert findings[0].severity == SeverityStr.HIGH
-    assert findings[0].line == 10
+    assert "eslint" in findings[0].type
+    assert "security/detect-eval-with-expression" in findings[0].type
+    assert findings[0].severity == "high"
+    assert findings[0].line_start == 10
     assert "src/index.js" in findings[0].file_path
     
     # Check second finding (Warning -> MEDIUM)
-    assert findings[1].severity == SeverityStr.MEDIUM
-    assert findings[1].rule_id == "no-console"
+    assert findings[1].severity == "medium"
+    assert "no-console" in findings[1].type
 
 def test_parse_output_empty(eslint_wrapper):
     findings = eslint_wrapper.parse_output("[]")

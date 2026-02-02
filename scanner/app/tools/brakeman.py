@@ -1,7 +1,7 @@
 import json
 from typing import List, Optional
 from app.tools.base import ToolWrapper
-from app.schemas import FindingSchema, SeverityStr
+from app.schemas import FindingSchema, SeverityLevel
 
 class BrakemanWrapper(ToolWrapper):
     @property
@@ -26,6 +26,14 @@ class BrakemanWrapper(ToolWrapper):
         gemfile = self.project_path / "Gemfile"
         return gemfile.exists()
 
+    def _map_severity(self, brakeman_severity: str) -> SeverityLevel:
+        if brakeman_severity == "High":
+            return SeverityLevel.HIGH
+        elif brakeman_severity == "Weak":
+            return SeverityLevel.LOW
+        else:
+            return SeverityLevel.MEDIUM
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         findings = []
         try:
@@ -41,26 +49,22 @@ class BrakemanWrapper(ToolWrapper):
                 line = warning.get("line", 0)
                 confidence = warning.get("confidence", "Medium") # High, Medium, Weak
                 
-                # Default severity mapping
-                severity = SeverityStr.MEDIUM
-                if confidence == "High":
-                    severity = SeverityStr.HIGH
-                elif confidence == "Weak":
-                    severity = SeverityStr.LOW
+                severity = self._map_severity(confidence)
                 
                 # Normalize path relative to project root (usually Brakeman returns relative paths already)
                 if str(self.project_path) in file_path:
                     file_path = file_path.replace(str(self.project_path), "").lstrip("/\\")
 
                 finding = FindingSchema(
-                    tool="brakeman",
-                    title=f"{warning_type}: {message[:100]}",
-                    description=message,
+                    type=f"brakeman:{warning_type}",
                     severity=severity,
+                    confidence=90 if confidence == "High" else (70 if confidence == "Medium" else 50),
                     file_path=file_path,
-                    line=line,
-                    column=0,
-                    rule_id=warning.get("check_name", warning_type)
+                    line_start=line if line > 0 else 1,
+                    line_end=line if line > 0 else 1,
+                    message=message,
+                    cwe_id=None,
+                    owasp_category="A01:2021 - Broken Access Control" if "Access" in warning_type else None
                 )
                 findings.append(finding)
                     

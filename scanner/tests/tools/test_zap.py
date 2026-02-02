@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 from app.tools.zap import ZapWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def zap_wrapper():
@@ -77,12 +77,12 @@ def test_parse_output(zap_wrapper):
     assert len(findings) == 2
     
     # Check SQL injection finding
-    assert findings[0].severity == "HIGH"
+    assert findings[0].severity == "high"
     assert "SQL Injection" in findings[0].type
     assert "http://example.com/search" in findings[0].file_path
     
     # Check XSS finding
-    assert findings[1].severity == "MEDIUM"
+    assert findings[1].severity == "medium"
     assert "XSS" in findings[1].type
 
 def test_parse_output_empty(zap_wrapper):

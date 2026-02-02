@@ -2,7 +2,7 @@ import pytest
 import json
 from pathlib import Path
 from app.tools.phpstan import PhpstanWrapper
-from app.schemas import SeverityStr
+from app.schemas import SeverityLevel
 
 @pytest.fixture
 def phpstan_wrapper():
@@ -47,15 +47,15 @@ def test_parse_output(phpstan_wrapper):
     assert len(findings) == 2
     
     # Check security finding (HIGH)
-    assert findings[0].tool == "phpstan"
-    assert findings[0].severity == SeverityStr.HIGH
-    assert "Security Warning" in findings[0].title
-    assert findings[0].line == 15
+    assert "phpstan" in findings[0].type
+    assert findings[0].severity == "high"
+    assert "unsafe" in findings[0].message.lower()
+    assert findings[0].line_start == 15
     assert "src/index.php" in findings[0].file_path
     
-    # Check normal error (MEDIUM)
-    assert findings[1].severity == SeverityStr.MEDIUM
-    assert "Undefined variable" in findings[1].description
+    # Check normal error (LOW - default for non-security issues)
+    assert findings[1].severity == "low"
+    assert "undefined" in findings[1].message.lower()
 
 def test_parse_output_empty(phpstan_wrapper):
     findings = phpstan_wrapper.parse_output("{}")

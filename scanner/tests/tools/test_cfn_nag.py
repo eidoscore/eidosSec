@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 from app.tools.cfn_nag import CfnNagWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def cfn_nag_wrapper():
@@ -64,13 +64,13 @@ def test_parse_output(cfn_nag_wrapper):
     assert len(findings) == 2
     
     # Check encryption finding
-    assert findings[0].severity == "HIGH"  # Contains "encryption"
+    assert findings[0].severity == "high"  # Contains "encryption"
     assert "F1" in findings[0].type
     assert findings[0].file_path == "template.yaml"
     assert findings[0].line_start == 15
     
     # Check security group finding
-    assert findings[1].severity == "HIGH"  # Contains "Security"
+    assert findings[1].severity == "high"  # Contains "Security"
     assert "W2" in findings[1].type
 
 def test_parse_output_empty(cfn_nag_wrapper):
@@ -84,12 +84,12 @@ def test_parse_output_invalid_json(cfn_nag_wrapper):
 def test_determine_severity(cfn_nag_wrapper):
     """Test severity determination logic"""
     # High severity patterns
-    assert cfn_nag_wrapper._determine_severity("F1", "Security group open") == "HIGH"
-    assert cfn_nag_wrapper._determine_severity("F2", "Password in plaintext") == "HIGH"
-    assert cfn_nag_wrapper._determine_severity("F3", "No encryption") == "HIGH"
+    assert cfn_nag_wrapper._determine_severity("F1", "Security group open") == SeverityLevel.HIGH
+    assert cfn_nag_wrapper._determine_severity("F2", "Password in plaintext") == SeverityLevel.HIGH
+    assert cfn_nag_wrapper._determine_severity("F3", "No encryption") == SeverityLevel.HIGH
     
     # Medium severity patterns
-    assert cfn_nag_wrapper._determine_severity("W1", "Warning: should use") == "MEDIUM"
+    assert cfn_nag_wrapper._determine_severity("W1", "Warning: should use") == SeverityLevel.MEDIUM
     
     # Low severity (default)
-    assert cfn_nag_wrapper._determine_severity("I1", "Information") == "LOW"
+    assert cfn_nag_wrapper._determine_severity("I1", "Information") == SeverityLevel.LOW

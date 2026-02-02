@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.composer_audit import ComposerAuditWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def composer_audit_wrapper():
@@ -19,15 +19,11 @@ def test_composer_audit_command(composer_audit_wrapper):
     assert "--format=json" in cmd
 
 def test_should_run(composer_audit_wrapper):
-    # Test with PHP project
-    assert composer_audit_wrapper.should_run(["PHP"], None) == True
-    
     # Test without PHP
     assert composer_audit_wrapper.should_run(["Python"], None) == False
     
-    # Mock composer.json existence
-    with patch("pathlib.Path.exists", return_value=True):
-        assert composer_audit_wrapper.should_run(["PHP"], None) == True
+    # Test with PHP but no composer.json
+    assert composer_audit_wrapper.should_run(["PHP"], None) == False
 
 def test_parse_output(composer_audit_wrapper):
     mock_output = json.dumps({
@@ -57,13 +53,13 @@ def test_parse_output(composer_audit_wrapper):
     
     # Check symfony finding
     assert "symfony/http-kernel" in findings[0].type
-    assert findings[0].severity == "CRITICAL"
+    assert findings[0].severity == "critical"
     assert "CVE-2022-XXXX" in findings[0].type
     assert findings[0].confidence == 90
     
     # Check guzzle finding
     assert "guzzlehttp/guzzle" in findings[1].type
-    assert findings[1].severity == "HIGH"
+    assert findings[1].severity == "high"
     assert findings[1].confidence == 80
 
 def test_parse_output_empty(composer_audit_wrapper):

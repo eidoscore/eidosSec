@@ -1,7 +1,7 @@
 import json
 from typing import List, Optional
 from app.tools.base import ToolWrapper
-from app.schemas import FindingSchema, SeverityStr
+from app.schemas import FindingSchema, SeverityLevel
 
 class PhpstanWrapper(ToolWrapper):
     @property
@@ -39,25 +39,26 @@ class PhpstanWrapper(ToolWrapper):
                     
                     # Basic heuristic for severity/security relevance
                     # Since PHPStan is static analysis, not purely security
-                    severity = SeverityStr.LOW
+                    severity = SeverityLevel.LOW
                     title = "PHPStan Static Analysis Issue"
                     
                     if "security" in message.lower() or "unsafe" in message.lower() or "vulnerability" in message.lower():
-                        severity = SeverityStr.HIGH
+                        severity = SeverityLevel.HIGH
                         title = "PHPStan Security Warning"
                     elif "error" in message.lower() or "fail" in message.lower():
-                        severity = SeverityStr.MEDIUM
+                        severity = SeverityLevel.MEDIUM
                         title = "PHPStan Error"
 
                     finding = FindingSchema(
-                        tool="phpstan",
-                        title=f"{title}: {message[:100]}",
-                        description=message,
+                        type=f"phpstan:{title.replace(' ', '_').lower()}",
                         severity=severity,
+                        confidence=75 if severity == SeverityLevel.HIGH else (50 if severity == SeverityLevel.MEDIUM else 30),
                         file_path=file_path,
-                        line=line,
-                        column=0, # PHPStan JSON often doesn't give column
-                        rule_id="phpstan-finding"
+                        line_start=line if line > 0 else 1,
+                        line_end=line if line > 0 else 1,
+                        message=message,
+                        cwe_id=None,
+                        owasp_category=None
                     )
                     findings.append(finding)
                     

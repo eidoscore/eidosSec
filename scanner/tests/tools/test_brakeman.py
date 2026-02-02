@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.brakeman import BrakemanWrapper
-from app.schemas import SeverityStr
+from app.schemas import SeverityLevel
 
 @pytest.fixture
 def brakeman_wrapper():
@@ -52,14 +52,14 @@ def test_parse_output(brakeman_wrapper):
     assert len(findings) == 2
     
     # Check High confidence finding (High Severity)
-    assert findings[0].tool == "brakeman"
-    assert findings[0].severity == SeverityStr.HIGH
-    assert "SQL Injection" in findings[0].title
-    assert findings[0].line == 42
+    assert "brakeman" in findings[0].type
+    assert findings[0].severity == "high"
+    assert "SQL" in findings[0].message.upper()
+    assert findings[0].line_start == 42
     
     # Check Medium confidence finding (Medium Severity)
-    assert findings[1].severity == SeverityStr.MEDIUM
-    assert "Cross-Site Scripting" in findings[1].title
+    assert findings[1].severity == "medium"
+    assert "output" in findings[1].message.lower()
 
 def test_parse_output_empty(brakeman_wrapper):
     findings = brakeman_wrapper.parse_output("{}")

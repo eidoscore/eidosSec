@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.nuclei import NucleiWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def nuclei_wrapper():
@@ -62,12 +62,12 @@ def test_parse_output(nuclei_wrapper):
     assert len(findings) == 2
     
     # Check Log4j finding
-    assert findings[0].severity == "CRITICAL"
+    assert findings[0].severity == "critical"
     assert "Log4j RCE" in findings[0].type
     assert "http://example.com" in findings[0].file_path
     
     # Check XSS finding
-    assert findings[1].severity == "HIGH"
+    assert findings[1].severity == "high"
     assert "Reflected XSS" in findings[1].type
 
 def test_parse_output_empty(nuclei_wrapper):

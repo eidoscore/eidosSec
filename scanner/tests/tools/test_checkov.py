@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from app.tools.checkov import CheckovWrapper
-from app.schemas import FindingSchema
+from app.schemas import FindingSchema, SeverityLevel
 
 @pytest.fixture
 def checkov_wrapper():
@@ -71,14 +71,14 @@ def test_parse_output(checkov_wrapper):
     assert len(findings) == 2
     
     # Check S3 finding
-    assert findings[0].severity == "HIGH"
+    assert findings[0].severity == "high"
     assert "CKV_AWS_1" in findings[0].type
     assert findings[0].file_path == "/main.tf"
     assert findings[0].line_start == 10
     assert findings[0].line_end == 20
     
     # Check EBS finding
-    assert findings[1].severity == "MEDIUM"
+    assert findings[1].severity == "medium"
     assert "CKV_AWS_2" in findings[1].type
 
 def test_parse_output_empty(checkov_wrapper):
@@ -91,10 +91,10 @@ def test_parse_output_invalid_json(checkov_wrapper):
 
 def test_map_severity(checkov_wrapper):
     """Test severity mapping"""
-    assert checkov_wrapper._map_severity("CRITICAL") == "CRITICAL"
-    assert checkov_wrapper._map_severity("HIGH") == "HIGH"
-    assert checkov_wrapper._map_severity("MEDIUM") == "MEDIUM"
-    assert checkov_wrapper._map_severity("LOW") == "LOW"
-    assert checkov_wrapper._map_severity("INFO") == "INFO"
-    assert checkov_wrapper._map_severity("UNKNOWN") == "MEDIUM"  # Default
-    assert checkov_wrapper._map_severity("") == "MEDIUM"  # Default for empty
+    assert checkov_wrapper._map_severity("CRITICAL") == SeverityLevel.CRITICAL
+    assert checkov_wrapper._map_severity("HIGH") == SeverityLevel.HIGH
+    assert checkov_wrapper._map_severity("MEDIUM") == SeverityLevel.MEDIUM
+    assert checkov_wrapper._map_severity("LOW") == SeverityLevel.LOW
+    assert checkov_wrapper._map_severity("INFO") == SeverityLevel.INFO
+    assert checkov_wrapper._map_severity("UNKNOWN") == SeverityLevel.MEDIUM  # Default
+    assert checkov_wrapper._map_severity("") == SeverityLevel.MEDIUM  # Default for empty
