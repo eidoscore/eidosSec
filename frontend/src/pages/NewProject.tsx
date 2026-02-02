@@ -1,12 +1,29 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, FolderOpen, Code2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Loader2, FolderOpen, Code2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+
+// Detect operating system for path placeholder
+const getOSInfo = () => {
+    const platform = navigator.platform.toLowerCase()
+    if (platform.includes('win')) {
+        return {
+            isWindows: true,
+            placeholder: 'e.g. C:\\Users\\dev\\projects\\my-app',
+            hint: 'Use backslashes (\\) for Windows paths'
+        }
+    }
+    return {
+        isWindows: false,
+        placeholder: 'e.g. /home/user/projects/my-app',
+        hint: 'Use forward slashes (/) for Linux/macOS paths'
+    }
+}
 
 export default function NewProject() {
     const navigate = useNavigate()
@@ -18,6 +35,10 @@ export default function NewProject() {
         framework: 'auto',
     })
     const [error, setError] = useState('')
+    const [autoScan, setAutoScan] = useState(true) // Auto-scan enabled by default
+
+    // Platform detection
+    const osInfo = useMemo(() => getOSInfo(), [])
 
     // Mock detection loading state
     const [isDetecting, setIsDetecting] = useState(false)
@@ -25,9 +46,34 @@ export default function NewProject() {
 
     const createProjectMutation = useMutation({
         mutationFn: (data: any) => api.post('/projects', data),
-        onSuccess: () => {
+        onSuccess: async (response: any) => {
             queryClient.invalidateQueries({ queryKey: ['projects'] })
-            navigate('/')
+            const projectId = response.data?.id
+
+            // If auto-scan is enabled, start a scan and navigate to scan page
+            if (autoScan && projectId) {
+                try {
+                    const scanResponse = await api.post('/scans', {
+                        project_id: projectId,
+                        scan_type: 'quick'
+                    })
+                    const scanId = scanResponse.data?.id
+                    if (scanId) {
+                        navigate(`/scans/${scanId}`)
+                        return
+                    }
+                } catch (scanError) {
+                    console.error('Auto-scan failed:', scanError)
+                    // Fall back to project page if scan fails
+                }
+            }
+
+            // Navigate to project page if no auto-scan
+            if (projectId) {
+                navigate(`/projects/${projectId}`)
+            } else {
+                navigate('/')
+            }
         },
         onError: (error: any) => {
             setError(error.response?.data?.detail || 'Failed to create project')
@@ -97,12 +143,14 @@ export default function NewProject() {
                             <label className="text-sm font-medium">Local Path</label>
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder="e.g. /home/user/projects/my-app"
+                                    placeholder={osInfo.placeholder}
                                     value={formData.path}
                                     onChange={(e) => setFormData({ ...formData, path: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">Absolute path to the project root directory.</p>
+                            <p className="text-xs text-muted-foreground">
+                                Absolute path to the project root directory. {osInfo.hint}
+                            </p>
                         </div>
 
                         {error && (
@@ -181,9 +229,33 @@ export default function NewProject() {
                                 <div className="text-sm">Your project is ready to be onboarded.</div>
                             </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            This will create the project entry in the database. You can start a scan immediately after.
-                        </p>
+
+                        {/* Auto-scan checkbox */}
+                        <div className="flex items-center gap-3 p-4 border rounded-lg bg-muted/30">
+                            <input
+                                type="checkbox"
+                                id="autoScan"
+                                checked={autoScan}
+                                onChange={(e) => setAutoScan(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="autoScan" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                    <Zap className="h-4 w-4 text-yellow-500" />
+                                    <span className="font-medium">Start Quick Scan immediately</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Run a security scan right after project creation (~5-10 minutes)
+                                </p>
+                            </label>
+                        </div>
+
+                        {error && (
+                            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                {error}
+                            </div>
+                        )}
                     </CardContent>
                     <CardFooter className="flex justify-between">
                         <Button variant="ghost" onClick={() => setStep(2)}>
@@ -192,10 +264,14 @@ export default function NewProject() {
                         <Button onClick={handleCreate} disabled={createProjectMutation.isPending}>
                             {createProjectMutation.isPending ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {autoScan ? 'Creating & Starting Scan...' : 'Creating...'}
                                 </>
                             ) : (
-                                'Create Project'
+                                <>
+                                    {autoScan ? 'Create & Scan' : 'Create Project'}
+                                    {autoScan && <Zap className="ml-2 h-4 w-4" />}
+                                </>
                             )}
                         </Button>
                     </CardFooter>

@@ -7,7 +7,11 @@ import uuid
 
 from app.database import get_db
 from app.models import Project
-from app.schemas import ProjectCreate, ProjectResponse, ProjectListResponse
+from app.schemas import (
+    ProjectCreate, ProjectResponse, ProjectListResponse,
+    ProjectDetectRequest, ProjectDetectResponse
+)
+from app.services.detector import detect_project
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -139,3 +143,35 @@ async def delete_project(
     await db.delete(project)
     await db.commit()
     return None
+
+
+@router.post("/detect", response_model=ProjectDetectResponse)
+async def detect_project_info(request: ProjectDetectRequest):
+    """
+    Detect languages and framework for a project path.
+
+    Analyzes the directory structure, file extensions, and configuration files
+    to determine:
+    - Programming languages used
+    - Framework (if detectable)
+    - Detection confidence score
+
+    This endpoint does not require database access and can be called
+    before creating a project.
+    """
+    result = detect_project(request.path)
+
+    # Check for errors
+    if 'error' in result:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result['error']
+        )
+
+    return ProjectDetectResponse(
+        path=result['path'],
+        languages=result['languages'],
+        framework=result['framework'],
+        files_analyzed=result['files_analyzed'],
+        detection_confidence=result['detection_confidence']
+    )

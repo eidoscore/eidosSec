@@ -147,3 +147,18 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     items: List[Any]
+
+
+# Project Detection Schemas
+class ProjectDetectRequest(BaseModel):
+    """Request schema for detecting project languages and framework"""
+    path: str = Field(..., description="Absolute path to project directory")
+
+
+class ProjectDetectResponse(BaseModel):
+    """Response schema for project detection"""
+    path: str
+    languages: List[str]
+    framework: Optional[str]
+    files_analyzed: int
+    detection_confidence: float  # 0.0 - 1.0

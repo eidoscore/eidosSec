@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Filter, Search } from 'lucide-react'
+import { ArrowLeft, Loader2, Filter, Search, ShieldCheck, Lock } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -146,36 +146,85 @@ export default function ScanDetails() {
             {/* Findings List (if completed) */}
             {scan.status === 'completed' && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="text-2xl font-bold">{scan.total_findings}</div>
-                                <div className="text-sm text-muted-foreground">Total Findings</div>
-                            </CardContent>
-                        </Card>
-                        {/* Summary placeholders - ideally we aggregate these from findings */}
-                        <Card className="border-l-4 border-l-red-600">
-                            <CardContent className="pt-6">
-                                <div className="text-2xl font-bold text-red-600">
-                                    {findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high').length}
+                    {/* Zero Findings Celebration */}
+                    {findings.length === 0 && (
+                        <Card className="border-green-500/30 bg-green-500/5">
+                            <CardContent className="py-12 text-center">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-4">
+                                    <ShieldCheck className="h-8 w-8 text-green-600" />
                                 </div>
-                                <div className="text-sm text-muted-foreground">Critical/High</div>
+                                <h3 className="text-xl font-semibold text-green-600 mb-2">
+                                    No Vulnerabilities Found!
+                                </h3>
+                                <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                                    Great news! The Quick Scan didn't detect any security issues in your code.
+                                    Consider running a Deep Scan for more comprehensive analysis.
+                                </p>
+                                <div className="flex items-center justify-center gap-3">
+                                    <Button variant="outline" disabled className="opacity-60">
+                                        <Lock className="mr-2 h-4 w-4" />
+                                        Deep Scan (PRO)
+                                    </Button>
+                                    <span className="text-xs text-muted-foreground">
+                                        Coming soon with 60+ security tools
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
-                    </div>
+                    )}
 
-                    <div className="flex items-center gap-4 py-4">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search findings..." className="pl-8" />
-                        </div>
-                        <Button variant="outline">
-                            <Filter className="mr-2 h-4 w-4" /> Filter
-                        </Button>
-                    </div>
+                    {/* Stats Cards (only show if there are findings) */}
+                    {findings.length > 0 && (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <Card>
+                                    <CardContent className="pt-6">
+                                        <div className="text-2xl font-bold">{scan.total_findings}</div>
+                                        <div className="text-sm text-muted-foreground">Total Findings</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-l-red-600">
+                                    <CardContent className="pt-6">
+                                        <div className="text-2xl font-bold text-red-600">
+                                            {findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high').length}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Critical/High</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-l-yellow-500">
+                                    <CardContent className="pt-6">
+                                        <div className="text-2xl font-bold text-yellow-600">
+                                            {findings.filter((f: any) => f.severity === 'medium').length}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Medium</div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-l-blue-500">
+                                    <CardContent className="pt-6">
+                                        <div className="text-2xl font-bold text-blue-600">
+                                            {findings.filter((f: any) => f.severity === 'low' || f.severity === 'info').length}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Low/Info</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                    <div className="border rounded-md">
-                        <Table>
+                            <div className="flex items-center gap-4 py-4">
+                                <div className="relative flex-1 max-w-sm">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="Search findings..." className="pl-8" />
+                                </div>
+                                <Button variant="outline">
+                                    <Filter className="mr-2 h-4 w-4" /> Filter
+                                </Button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Findings Table (only show if there are findings) */}
+                    {findings.length > 0 && (
+                        <div className="border rounded-md">
+                            <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Severity</TableHead>
@@ -212,7 +261,8 @@ export default function ScanDetails() {
                                 ))}
                             </TableBody>
                         </Table>
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
 
