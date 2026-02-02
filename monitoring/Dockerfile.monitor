@@ -2,11 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install FastAPI, uvicorn and Docker CLI for fallback
+# Install FastAPI, uvicorn and Docker CLI for fallback (static binary for reliability)
 RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://get.docker.com -o get-docker.sh && \
-    sh get-docker.sh --docker-ca-path /tmp && \
-    rm get-docker.sh && \
+    curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.5.tgz | tar xvz --strip-components=1 -C /usr/local/bin/ docker/docker && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir \
     fastapi==0.109.0 \
     uvicorn[standard]==0.27.0 \
