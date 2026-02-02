@@ -83,10 +83,13 @@ jobs:
           docker compose up -d postgres redis
           
           echo "⏳ Waiting for database..."
-          sleep 10
+          sleep 15
           
           echo "🗄️  Running database migrations..."
-          docker compose run --rm backend alembic upgrade head || true
+          timeout 300 docker compose run --rm backend alembic upgrade head 2>&1 | tee migration.log || {
+            echo "❌ Migrations FAILED or TIMED OUT"
+            docker compose logs postgres
+          }
           
       - name: Start remaining services
         run: |
