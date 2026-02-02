@@ -11,6 +11,7 @@ from app.tools.bandit import BanditWrapper
 from app.tools.eslint import EslintWrapper
 from app.tools.phpstan import PhpstanWrapper
 from app.tools.brakeman import BrakemanWrapper
+from app.tools.safety import SafetyWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -27,6 +28,7 @@ class ScanOrchestrator:
             EslintWrapper(project_path),
             PhpstanWrapper(project_path),
             BrakemanWrapper(project_path),
+            SafetyWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
