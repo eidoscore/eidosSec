@@ -63,6 +63,10 @@ jobs:
           
       - name: Start Monitoring Agent
         run: |
+          echo "🧹 Cleaning up legacy monitoring containers if any..."
+          docker stop eidos-monitoring || true
+          docker rm eidos-monitoring || true
+          
           echo "👀 Starting autonomous monitoring agent..."
           docker compose up -d monitoring
           
