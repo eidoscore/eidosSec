@@ -22,13 +22,19 @@ else
 fi
 
 # Ensure git and other tools are present
-apt-get update && apt-get install -y git jq curl
+apt-get update && apt-get install -y git jq curl locales
+
+# Validate locale
+locale-gen en_US.UTF-8
 
 # 2. Create runner user
 echo "👤 Creating runner user..."
 if ! id "runner" &>/dev/null; then
     useradd -m -s /bin/bash runner
     usermod -aG docker runner
+    echo "export LC_ALL=en_US.UTF-8" >> /home/runner/.bashrc
+    echo "export LANG=en_US.UTF-8" >> /home/runner/.bashrc
+    echo "export LANGUAGE=en_US.UTF-8" >> /home/runner/.bashrc
     echo "✅ User 'runner' created and added to 'docker' group"
 fi
 
