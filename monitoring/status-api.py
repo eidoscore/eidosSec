@@ -222,12 +222,24 @@ def restart_service(service_name: str):
 
 @app.get("/api/ps")
 def get_docker_ps(all: bool = False):
-    """List containers using shell fallback with optional -a flag"""
-    cmd = ["docker", "ps", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"]
+    """List containers with detailed info"""
+    cmd = ["docker", "ps", "--format", "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"]
     if all:
         cmd.insert(2, "-a")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            return {"status": "success", "output": result.stdout}
+        return {"status": "error", "error": result.stderr}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@app.get("/api/images")
+def get_docker_images():
+    """List project images"""
+    try:
+        result = subprocess.run(["docker", "images", "--filter", "reference=eidossec/*", "--format", "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"], 
+                              capture_output=True, text=True)
         if result.returncode == 0:
             return {"status": "success", "output": result.stdout}
         return {"status": "error", "error": result.stderr}
