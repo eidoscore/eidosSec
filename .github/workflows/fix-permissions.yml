@@ -1,0 +1,20 @@
+name: Manually Fix Permissions
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Force Clean Workspace
+        run: |
+          echo "🧹 Manually fixing permissions..."
+          # Fix permissions of the work directory so checkout can succeed next time
+          # We use sudo because the files are owned by root (from Docker)
+          # Use current user ID for safety
+          sudo chown -R $USER:$USER . || true
+          
+          # Force remove potential locking directories
+          sudo rm -rf monitoring/data || true
+          
+          echo "✅ Permissions fixed. You can now re-run the Deployment job."
