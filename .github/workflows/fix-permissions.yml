@@ -8,6 +8,9 @@ jobs:
     steps:
       - name: Force Clean Workspace
         run: |
+          echo "🛑 Stopping monitoring agent to release file locks..."
+          sudo docker rm -f eidossec-monitoring || true
+          
           echo "🧹 Manually fixing permissions..."
           # Fix permissions of the work directory so checkout can succeed next time
           # We use sudo because the files are owned by root (from Docker)
@@ -17,4 +20,4 @@ jobs:
           # Force remove potential locking directories
           sudo rm -rf monitoring/data || true
           
-          echo "✅ Permissions fixed. You can now re-run the Deployment job."
+          echo "✅ Permissions fixed and Agent stopped. You can now re-run the Deployment job."
