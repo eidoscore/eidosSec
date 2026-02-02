@@ -53,8 +53,8 @@ jobs:
           
       - name: Build services
         run: |
-          echo "🔨 Building project services..."
-          docker compose build --parallel 2>&1 | tee build.log
+          echo "🔨 Building project services (sequential for stability)..."
+          docker compose build 2>&1 | tee build.log
           
       - name: Reset project containers
         run: |
