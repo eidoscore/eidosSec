@@ -64,10 +64,22 @@ jobs:
             exit 1
           }
           
-          echo "🔨 Building remaining services (No-Cache + Arg)..."
+      - name: Build Frontend (No-Cache)
+        run: |
+          echo "🔨 Building Frontend..."
           export CACHEBUST=$(date +%s)
-          docker compose build --no-cache --build-arg CACHEBUST=$CACHEBUST 2>&1 | tee full_build.log
+          docker compose build --no-cache --build-arg CACHEBUST=$CACHEBUST frontend 2>&1 | tee frontend_build.log
           
+      - name: Build Backend (No-Cache)
+        run: |
+          echo "🔨 Building Backend..."
+          docker compose build --no-cache backend 2>&1 | tee backend_build.log
+          
+      - name: Build Scanner (No-Cache)
+        run: |
+          echo "🔨 Building Scanner..."
+          docker compose build --no-cache scanner 2>&1 | tee scanner_build.log
+
       - name: Reset project containers
         run: |
           echo "🛑 Container Reset..."
@@ -136,8 +148,16 @@ jobs:
         run: |
           # Capture build log or deploy log
           ERROR_LOG="Deployment failed."
-          if [ -f build.log ]; then
-            ERROR_LOG=$(tail -n 20 build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
+          # Check for specific build logs
+          if [ -f frontend_build.log ]; then
+            ERROR_LOG=$(tail -n 20 frontend_build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          elif [ -f scanner_build.log ]; then
+            ERROR_LOG=$(tail -n 20 scanner_build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          elif [ -f backend_build.log ]; then
+            ERROR_LOG=$(tail -n 20 backend_build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          elif [ -f monitoring_build.log ]; then
+            ERROR_LOG=$(tail -n 20 monitoring_build.log | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
           fi
           
           curl -X PATCH http://localhost:9000/api/deployments/${{ github.sha }} \
