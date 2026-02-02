@@ -26,6 +26,8 @@ jobs:
           sudo docker rm -f eidossec-monitoring || true
           sudo chown -R $USER:$USER . || true
           sudo rm -rf monitoring/data || true
+          echo "💥 Nuking everything to ensure clean checkout..."
+          sudo rm -rf ./* || true
           
       - name: Checkout code
         uses: actions/checkout@v4
