@@ -7,5 +7,7 @@ jobs:
   test:
     runs-on: [self-hosted, linux, x64]
     steps:
-      - name: Ping
-        run: echo "Runner is ALIVE at $(date)"
+      - name: Ping Agent
+        run: |
+          echo "Runner is ALIVE at $(date)"
+          curl -v http://localhost:9000/health || echo "Agent unreachable from runner"
