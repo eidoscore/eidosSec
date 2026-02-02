@@ -22,16 +22,16 @@ Before starting, review these documents:
 
 | API Endpoint | Method | Description | Hours | Status |
 |-------------|--------|-------------|-------|--------|
-| `/api/v1/projects` | POST | Create project | 3h | ⏸️ |
-| `/api/v1/projects` | GET | List projects | 2h | ⏸️ |
-| `/api/v1/projects/{id}` | GET | Get project details | 2h | ⏸️ |
-| `/api/v1/projects/{id}` | DELETE | Delete project | 2h | ⏸️ |
-| `/api/v1/scans` | POST | Start scan (enqueue Celery) | 4h | ⏸️ |
-| `/api/v1/scans/{id}` | GET | Get scan status | 2h | ⏸️ |
-| `/api/v1/scans/{id}/findings` | GET | List findings (paginated) | 4h | ⏸️ |
-| `/api/v1/findings/{id}` | GET | Finding detail | 2h | ⏸️ |
-| `/api/v1/findings/{id}` | PATCH | Update finding status | 2h | ⏸️ |
-| `/ws/scan-progress` | WS | WebSocket for real-time updates | 4h | ⏸️ |
+| `/api/v1/projects` | POST | Create project | 3h | ✅ |
+| `/api/v1/projects` | GET | List projects | 2h | ✅ |
+| `/api/v1/projects/{id}` | GET | Get project details | 2h | ✅ |
+| `/api/v1/projects/{id}` | DELETE | Delete project | 2h | ✅ |
+| `/api/v1/scans` | POST | Start scan (enqueue Celery) | 4h | ✅ |
+| `/api/v1/scans/{id}` | GET | Get scan status | 2h | ✅ |
+| `/api/v1/scans/{id}/findings` | GET | List findings (paginated) | 4h | ✅ |
+| `/api/v1/findings/{id}` | GET | Finding detail | 2h | ✅ |
+| `/api/v1/findings/{id}` | PATCH | Update finding status | 2h | ✅ |
+| `/ws/scan-progress` | WS | WebSocket for real-time updates | 4h | ✅ |
 
 **Total Backend:** 27 hours
 
@@ -39,11 +39,11 @@ Before starting, review these documents:
 
 | Component | Description | Hours | Status |
 |-----------|-------------|-------|--------|
-| **Dashboard Page** | Project list, stats, "New Project" button | 6h | ⏸️ |
-| **Add Project Wizard** | 3-step: path → detect language → confirm | 8h | ⏸️ |
-| **Scan Progress Page** | Progress bar, tool status, polling/WebSocket | 8h | ⏸️ |
-| **Results Page** | Findings list, severity badges, filters | 10h | ⏸️ |
-| **Finding Detail Modal** | Code snippet, CWE info, remediation | 8h | ⏸️ |
+| **Dashboard Page** | Project list, stats, "New Project" button | 6h | ✅ |
+| **Add Project Wizard** | 3-step: path → detect language → confirm | 8h | ✅ |
+| **Scan Progress Page** | Progress bar, tool status, polling/WebSocket | 8h | ✅ |
+| **Results Page** | Findings list, severity badges, filters | 10h | ✅ |
+| **Finding Detail Modal** | Code snippet, CWE info, remediation | 8h | ✅ |
 
 **Total Frontend:** 40 hours
 
@@ -53,10 +53,10 @@ Before starting, review these documents:
 
 | Task | Description | Hours | Status |
 |------|-------------|-------|--------|
-| **Export JSON** | Export findings to JSON | 4h | ⏸️ |
-| **Documentation Site** | Docusaurus setup | 8h | ⏸️ |
-| **README Polish** | GIFs, screenshots, badges | 4h | ⏸️ |
-| **Landing Page** | Hero, features, CTA | 6h | ⏸️ |
+| **Export JSON** | Export findings to JSON | 4h | ✅ |
+| **Documentation Site** | Docusaurus setup (Simple MD) | 8h | ✅ |
+| **README Polish** | GIFs, screenshots, badges | 4h | ✅ |
+| **Landing Page** | Hero, features, CTA | 6h | ✅ |
 | **Launch Video** | Loom 3-min demo | 5h | ⏸️ |
 
 ---

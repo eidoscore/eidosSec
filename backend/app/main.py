@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.database import close_db
-from app.api.v1 import health, projects, scans
+from app.api.v1 import health, projects, scans, findings, websocket
 
 # Configure logging
 logging.basicConfig(
@@ -48,11 +48,17 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(projects.router, prefix="/api/v1")
 app.include_router(scans.router, prefix="/api/v1")
+app.include_router(findings.router, prefix="/api/v1")
+app.include_router(websocket.router)
 
 
 @app.get("/")
 async def root():
     return {
+        "message": "Welcome to eidosSec API",
+        "docs": "/docs",
+        "version": "0.1.0"
+    }
 @app.get("/health")
 async def root_health():
     """Root health check (redirects to /api/v1/health)"""

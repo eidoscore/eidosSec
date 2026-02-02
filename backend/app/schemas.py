@@ -133,6 +133,13 @@ class FindingResponse(FindingBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class FindingUpdate(BaseModel):
+    """Schema for updating a finding"""
+    status: Optional[str] = Field(None, pattern="^(open|fixed|false_positive|accepted_risk|wont_fix)$")
+    assigned_to: Optional[str] = Field(None, max_length=100)
+    metadata: Optional[Dict[str, Any]] = None
+
+
 # Pagination
 class PaginatedResponse(BaseModel):
     """Generic paginated response"""
