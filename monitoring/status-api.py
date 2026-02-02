@@ -168,15 +168,19 @@ def get_current_status():
 
 def get_docker_client():
     try:
-        return docker.from_env()
+        client = docker.from_env()
+        client.ping() # Verify connection
+        return client
     except Exception as e:
         print(f"Error connecting to Docker: {e}")
-        return None
+        return str(e) # Return error string instead of None to differentiate
 
 @app.post("/api/action/restart/{service_name}")
 def restart_service(service_name: str):
     """Restart a docker container by service name fragment"""
     client = get_docker_client()
+    if isinstance(client, str):
+        raise HTTPException(status_code=500, detail=f"Docker connection failed: {client}")
     if not client:
         raise HTTPException(status_code=500, detail="Docker unavailable")
     
@@ -197,10 +201,20 @@ def restart_service(service_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/health/docker")
+def check_docker_health():
+    """Verify Docker socket access"""
+    client = get_docker_client()
+    if isinstance(client, str):
+        return {"status": "error", "error": client, "path": "/var/run/docker.sock"}
+    return {"status": "connected", "containers": len(client.containers.list())}
+
 @app.get("/api/logs/{service_name}")
 def get_service_logs(service_name: str, tail: int = 100):
     """Retrieve logs for a service"""
     client = get_docker_client()
+    if isinstance(client, str):
+        raise HTTPException(status_code=500, detail=f"Docker connection failed: {client}")
     if not client:
         raise HTTPException(status_code=500, detail="Docker unavailable")
     
