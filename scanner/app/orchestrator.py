@@ -12,6 +12,8 @@ from app.tools.eslint import EslintWrapper
 from app.tools.phpstan import PhpstanWrapper
 from app.tools.brakeman import BrakemanWrapper
 from app.tools.safety import SafetyWrapper
+from app.tools.npm_audit import NpmAuditWrapper
+from app.tools.composer_audit import ComposerAuditWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -29,6 +31,8 @@ class ScanOrchestrator:
             PhpstanWrapper(project_path),
             BrakemanWrapper(project_path),
             SafetyWrapper(project_path),
+            NpmAuditWrapper(project_path),
+            ComposerAuditWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
