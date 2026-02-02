@@ -4,9 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend/**'
       - 'frontend/**'
-      - 'scanner/**'
       - 'docker-compose.yml'
       - '.github/workflows/deploy-full-stack.yml'
   workflow_dispatch:
