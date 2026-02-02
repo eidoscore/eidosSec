@@ -10,6 +10,9 @@ on:
       - '.github/workflows/deploy-full-stack.yml'
   workflow_dispatch:
 
+env:
+  COMPOSE_PROJECT_NAME: eidossec
+
 jobs:
   deploy:
     runs-on: self-hosted
@@ -38,22 +41,17 @@ jobs:
           
       - name: Pull existing images
         run: |
-          echo "📦 Pulling latest images if available..."
+          echo "📦 Pulling latest images for project $COMPOSE_PROJECT_NAME..."
           docker-compose pull || true
           
       - name: Build services
         run: |
-          echo "🔨 Building all services..."
+          echo "🔨 Building project services..."
           docker-compose build --parallel 2>&1 | tee build.log
           
-      - name: Cleanup legacy containers
+      - name: Reset project containers
         run: |
-          echo "🧹 Removing legacy monitoring container..."
-          docker rm -f eidossec-cicd-monitor || true
-          
-      - name: Reset containers
-        run: |
-          echo "🛑 Stopping all containers for clean reset..."
+          echo "🛑 Stopping $COMPOSE_PROJECT_NAME services..."
           docker-compose down --remove-orphans || true
           
       - name: Start Monitoring Agent
@@ -80,7 +78,7 @@ jobs:
           
       - name: Start remaining services
         run: |
-          echo "🚀 Starting all services..."
+          echo "🚀 Starting all services for $COMPOSE_PROJECT_NAME..."
           docker-compose up -d
           
       - name: Wait for health checks
@@ -98,7 +96,7 @@ jobs:
           
       - name: Show service status
         run: |
-          echo "📊 Service Status:"
+          echo "📊 Service Status for $COMPOSE_PROJECT_NAME:"
           docker-compose ps
           
       - name: Report deployment success
