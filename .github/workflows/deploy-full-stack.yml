@@ -41,6 +41,11 @@ jobs:
             echo "⚠️  Created .env from template - please configure manually"
           fi
           
+      - name: Fix Docker Socket Permissions (Auto-Repair)
+        run: |
+          echo "🔧 Ensuring Docker socket is accessible..."
+          sudo chmod 666 /var/run/docker.sock || true
+          
       - name: Pull existing images
         run: |
           echo "📦 Pulling latest images for project $COMPOSE_PROJECT_NAME..."
