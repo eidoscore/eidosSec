@@ -16,6 +16,8 @@ from app.tools.npm_audit import NpmAuditWrapper
 from app.tools.composer_audit import ComposerAuditWrapper
 from app.tools.zap import ZapWrapper
 from app.tools.nuclei import NucleiWrapper
+from app.tools.cfn_nag import CfnNagWrapper
+from app.tools.checkov import CheckovWrapper
 
 class ScanOrchestrator:
     # ... (existing methods)
@@ -37,6 +39,8 @@ class ScanOrchestrator:
             ComposerAuditWrapper(project_path),
             ZapWrapper(project_path),
             NucleiWrapper(project_path),
+            CfnNagWrapper(project_path),
+            CheckovWrapper(project_path),
         ]
     
     def run_scan(self) -> ScanResultSchema:
