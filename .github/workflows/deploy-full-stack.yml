@@ -61,8 +61,9 @@ jobs:
             exit 1
           }
           
-          echo "🔨 Building remaining services (No-Cache)..."
-          docker compose build --no-cache 2>&1 | tee full_build.log
+          echo "🔨 Building remaining services (No-Cache + Arg)..."
+          export CACHEBUST=$(date +%s)
+          docker compose build --no-cache --build-arg CACHEBUST=$CACHEBUST 2>&1 | tee full_build.log
           
       - name: Reset project containers
         run: |
