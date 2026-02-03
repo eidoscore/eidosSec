@@ -12,6 +12,7 @@ COPY package*.json ./
 RUN npm ci
 
 # Copy source code
+ARG CACHEBUST=1
 COPY . .
 
 # Build application

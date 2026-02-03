@@ -59,8 +59,9 @@ jobs:
         run: |
           echo "🔨 Building all services..."
           # Build sequentially to manage resources on small runners
+          export CACHEBUST=$(date +%s)
           docker compose build monitoring 2>&1 | tee monitoring_build.log
-          docker compose build frontend 2>&1 | tee frontend_build.log
+          docker compose build --build-arg CACHEBUST=$CACHEBUST frontend 2>&1 | tee frontend_build.log
           docker compose build backend 2>&1 | tee backend_build.log
           docker compose build scanner 2>&1 | tee scanner_build.log
 
