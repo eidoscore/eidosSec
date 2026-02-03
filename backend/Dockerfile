@@ -34,7 +34,7 @@ COPY ./app ./app
 COPY ./alembic ./alembic
 COPY ./alembic.ini .
 
-# Create non-root user
+# Create non-root user and ensure proper ownership
 RUN useradd -m -u 1000 eidossec && \
     chown -R eidossec:eidossec /app
 
@@ -47,5 +47,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget -q --spider http://localhost:8000/health || exit 1
 
-# Run application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run application using module mode to avoid path issues
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
