@@ -1,7 +1,7 @@
 """Scan orchestrator - coordinates execution of security tools"""
 from pathlib import Path
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import redis
 import json
 import logging
@@ -106,7 +106,7 @@ class ScanOrchestrator:
         Returns:
             ScanResult with all findings and metadata
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"[Scan {self.scan_id}] Starting scan on {self.project_path}")
         
         try:
@@ -186,7 +186,7 @@ class ScanOrchestrator:
             # Step 5: Finalize
             self._publish_progress(90, "Finalizing scan results...")
             
-            completed_at = datetime.utcnow()
+            completed_at = datetime.now(timezone.utc)
             total_time = (completed_at - start_time).total_seconds()
             
             # Create result
@@ -229,12 +229,12 @@ class ScanOrchestrator:
                 project_path=str(self.project_path),
                 status="failed",
                 started_at=start_time,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(timezone.utc),
                 total_findings=0,
                 findings=[],
                 tools_executed=[],
                 tool_results=[],
-                execution_time=(datetime.utcnow() - start_time).total_seconds(),
+                execution_time=(datetime.now(timezone.utc) - start_time).total_seconds(),
                 metadata={"error": str(e)}
             )
             
@@ -346,7 +346,7 @@ class ScanOrchestrator:
                 "scan_id": self.scan_id,
                 "progress": percentage,
                 "message": message,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
             # Merge extra data
             progress_data.update(kwargs)

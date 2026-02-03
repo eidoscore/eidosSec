@@ -65,8 +65,8 @@ def test_scanner_output_matches_backend_schema(mock_findings):
     
     # Serialize to dict (as if sent over HTTP)
     # Pydantic v2 use model_dump(), v1 uses dict() or json()
-    # Using json() then load to ensure JSON compatibility
-    json_data = scan_result.json()
+    # Using model_dump_json() then load to ensure JSON compatibility
+    json_data = scan_result.model_dump_json()
     data = json.loads(json_data)
     
     # 1. Verify Findings compatibility
@@ -106,7 +106,7 @@ def test_deduplication_preserves_metadata(mock_findings):
     
     # Duplicate findings
     f1 = mock_findings[0]
-    f2 = mock_findings[0].copy()
+    f2 = mock_findings[0].model_copy()
     f2.metadata = {"package": "package-x", "version": "1.0.0", "other": "data"}
     
     # Mock deduplication (direct call to private method or wrapper)

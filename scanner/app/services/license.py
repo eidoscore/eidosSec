@@ -3,7 +3,7 @@ import logging
 import requests
 import json
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class LicenseVerifier:
         self.app_version = os.getenv("APP_VERSION", "0.1.0")
         
         self._cache = None
-        self._cache_expiry = datetime.utcnow()
+        self._cache_expiry = datetime.now(timezone.utc)
         self._cache_duration = timedelta(minutes=10) # Cache for 10 mins
 
     def check_feature(self, feature: str) -> bool:
