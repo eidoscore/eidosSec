@@ -1,7 +1,7 @@
 import pytest
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 # Import output schema from Scanner
@@ -53,8 +53,8 @@ def test_scanner_output_matches_backend_schema(mock_findings):
         scan_id="123e4567-e89b-12d3-a456-426614174000",
         project_path="/tmp/project",
         status="completed",
-        started_at=datetime.utcnow(),
-        completed_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(timezone.utc),
         total_findings=len(mock_findings),
         findings=mock_findings,
         tools_executed=["safety"],
