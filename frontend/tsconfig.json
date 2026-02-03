@@ -22,10 +22,10 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         /* Path aliases */
-        "baseUrl": ".",
+        "baseUrl": "src",
         "paths": {
             "@/*": [
-                "src/*"
+                "*"
             ]
         }
     },
