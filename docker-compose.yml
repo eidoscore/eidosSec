@@ -67,7 +67,7 @@ services:
       dockerfile: Dockerfile
     image: eidossec/backend:latest
     container_name: eidossec-celery
-    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       postgres:
         condition: service_healthy
