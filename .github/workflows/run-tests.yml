@@ -12,6 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Prepare artifacts directory
+        run: |
+          rm -rf test-artifacts || true
+          mkdir -p test-artifacts
+      
       # 1. Unit & Integration Testing (Backend)
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,14 +33,14 @@ jobs:
         run: |
           echo "🧪 Running Backend Tests..."
           cd backend
-          python -m pytest --junitxml=../backend-results.xml || echo "Backend tests failed"
+          python -m pytest --junitxml=../backend-results.xml 2>&1 | tee ../test-artifacts/backend-tests.log || echo "Backend tests failed"
           
       - name: Scanner Unit & Integration Tests
         continue-on-error: true
         run: |
           echo "🧪 Running Scanner Tests..."
           cd scanner
-          python -m pytest --junitxml=../scanner-results.xml || echo "Scanner tests failed"
+          python -m pytest --junitxml=../scanner-results.xml 2>&1 | tee ../test-artifacts/scanner-tests.log || echo "Scanner tests failed"
 
       # 2. Performance & Special Testing
       - name: API Performance Test
@@ -44,15 +49,17 @@ jobs:
           echo "📈 Running Performance Tests..."
           docker compose up -d backend
           sleep 10
-          python backend/tests/performance_load.py
+          python backend/tests/performance_load.py 2>&1 | tee test-artifacts/performance.log || true
           
       - name: Scanner Stress & Memory Test
         continue-on-error: true
         run: |
           echo "🏋️ Running Stress and Memory Tests..."
-          export PYTHONPATH=$PYTHONPATH:$(pwd)/scanner
-          python scanner/tests/stress_concurrency.py
-          python scanner/tests/memory_profile.py
+          # Run inside scanner container so all binaries exist.
+          # These are "special condition tests" (stress/memory) and can be tuned via env vars.
+          docker compose up -d redis || true
+          EIDOS_STRESS_SCANS=5 docker compose run --rm scanner python3 tests/stress_concurrency.py 2>&1 | tee test-artifacts/stress_concurrency.log || true
+          EIDOS_MEMORY_ITERS=5 EIDOS_MEMORY_MAX_GROWTH_MB=120 docker compose run --rm scanner python3 tests/memory_profile.py 2>&1 | tee test-artifacts/memory_profile.log || true
 
       # 3. System / Smoke Testing (Docker Compose)
       - name: Build & Start Full System
@@ -76,13 +83,46 @@ jobs:
           echo "🔒 Running Self-Scan..."
           docker compose run --rm scanner python -c "from app.orchestrator import ScanOrchestrator; print('Scanner logic verified')"
           
+      - name: Capture system diagnostics
+        if: always()
+        run: |
+          {
+            echo "## Runner diagnostics"
+            echo "date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "whoami: $(whoami)"
+            echo "pwd: $(pwd)"
+            echo ""
+            echo "### Docker"
+            docker --version || true
+            docker compose version || true
+            echo ""
+            echo "### Compose status"
+            docker compose ps || true
+          } 2>&1 | tee test-artifacts/runner_diagnostics.log || true
+
       - name: Teardown
         if: always()
         run: docker compose down
         
-      - name: Final Reporting
+      - name: Generate Month 1-5 report (artifact)
         if: always()
         run: |
-          echo "✅ All tests completed. Generating logs for Month 1-5 report..."
-          # In local/runner, logs will be visible in the console
+          python scripts/generate_verification_report.py \
+            --output test-artifacts/verification_report_m1_m5.md \
+            --backend-junit backend-results.xml \
+            --scanner-junit scanner-results.xml \
+            --performance-log test-artifacts/performance.log \
+            --stress-log test-artifacts/stress_concurrency.log \
+            --memory-log test-artifacts/memory_profile.log \
+            --runner-log test-artifacts/runner_diagnostics.log || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eidossec-test-artifacts
+          path: |
+            test-artifacts/**
+            backend-results.xml
+            scanner-results.xml
 
