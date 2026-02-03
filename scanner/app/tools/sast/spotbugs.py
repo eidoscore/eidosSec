@@ -9,6 +9,19 @@ class SpotBugsWrapper(ToolWrapper):
         super().__init__(project_path)
     
     @property
+    def command(self) -> List[str]:
+        """CLI invocation for SpotBugs analysis outputting XML to results dir."""
+        output_file = self.results_dir / "spotbugs.xml"
+        return [
+            "spotbugs",
+            "-textui",
+            "-xml",
+            "-output",
+            str(output_file),
+            str(self.project_path)
+        ]
+
+    @property
     def name(self) -> str:
         return "spotbugs"
     
@@ -31,23 +44,9 @@ class SpotBugsWrapper(ToolWrapper):
         # OR we can just try to output SARIF if the plugin is installed.
         # Let's start with a simple command.
         
-        output_file = self.results_dir / "spotbugs.xml"
-        
-        # This is a bit tricky for SpotBugs source analysis without build.
-        # We might need to look for .class or .jar files.
-        # CLI: spotbugs -textui -xml -output spotbugs.xml .
-        
-        command = [
-            "spotbugs",
-            "-textui",
-            "-xml",
-            "-output", str(output_file),
-            str(self.project_path)
-        ]
-        
         try:
-            self.run_command(command)
-            return self.parse_output(output_file)
+            self.run_command(self.command)
+            return self.parse_output(self.results_dir / "spotbugs.xml")
         except Exception as e:
             self.logger.error(f"SpotBugs failed: {e}")
             return []
