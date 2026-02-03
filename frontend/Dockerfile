@@ -13,7 +13,9 @@ RUN npm ci
 
 # Copy source code
 ARG CACHEBUST=1
+RUN echo "Cache bust: $CACHEBUST"
 COPY . .
+RUN ls -la src/lib
 
 # Build application
 RUN npm run build
