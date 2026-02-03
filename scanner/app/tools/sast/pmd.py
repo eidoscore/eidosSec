@@ -10,6 +10,17 @@ class PmdWrapper(ToolWrapper):
         super().__init__(project_path)
     
     @property
+    def command(self) -> List[str]:
+        output_file = self.results_dir / "pmd.xml"
+        return [
+            "pmd", "check",
+            "-d", str(self.project_path),
+            "-R", "rulesets/java/quickstart.xml",
+            "-f", "xml",
+            "-r", str(output_file)
+        ]
+
+    @property
     def name(self) -> str:
         return "pmd"
     
@@ -22,17 +33,9 @@ class PmdWrapper(ToolWrapper):
     
     def run(self) -> List[FindingSchema]:
         output_file = self.results_dir / "pmd.xml"
-        # pmd check -d . -R rulesets/java/quickstart.xml -f xml -r pmd.xml
-        command = [
-            "pmd", "check",
-            "-d", str(self.project_path),
-            "-R", "rulesets/java/quickstart.xml",
-            "-f", "xml",
-            "-r", str(output_file)
-        ]
         
         try:
-            subprocess.run(command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(self.command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if output_file.exists():
                  return self.parse_output(output_file)
             return []
