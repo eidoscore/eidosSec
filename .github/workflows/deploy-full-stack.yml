@@ -20,18 +20,18 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     
     steps:
-      - name: Clean Workspace (Pre-Checkout)
+      - name: Prepare Clean Workspace
         run: |
-          echo "🧹 Pre-cleaning workspace to fix EACCES issues..."
+          echo "🧹 Cleaning up legacy containers and workspace..."
           sudo docker rm -f eidossec-monitoring || true
+          # Fix ownership so checkout can always succeed
           sudo chown -R $USER:$USER . || true
-          sudo rm -rf monitoring/data || true
-          echo "💥 Nuking everything to ensure clean checkout..."
-          sudo rm -rf ./* || true
           
       - name: Checkout code
         uses: actions/checkout@v4
-        
+        with:
+          clean: true
+          
       - name: Report deployment start
         run: |
           curl -X POST http://localhost:9000/api/deployments \
@@ -55,30 +55,14 @@ jobs:
           echo "🔧 Checking Docker socket..."
           sudo chmod 666 /var/run/docker.sock || true
           
-      - name: Build services
+      - name: Build Services
         run: |
-          echo "🔨 Building Monitoring Agent (No-Cache)..."
-          docker compose build --no-cache monitoring 2>&1 | tee monitoring_build.log || {
-            echo "❌ Monitoring build failed"
-            cat monitoring_build.log
-            exit 1
-          }
-          
-      - name: Build Frontend (No-Cache)
-        run: |
-          echo "🔨 Building Frontend..."
-          export CACHEBUST=$(date +%s)
-          docker compose build --no-cache --build-arg CACHEBUST=$CACHEBUST frontend 2>&1 | tee frontend_build.log
-          
-      - name: Build Backend (No-Cache)
-        run: |
-          echo "🔨 Building Backend..."
-          docker compose build --no-cache backend 2>&1 | tee backend_build.log
-          
-      - name: Build Scanner (No-Cache)
-        run: |
-          echo "🔨 Building Scanner..."
-          docker compose build --no-cache scanner 2>&1 | tee scanner_build.log
+          echo "🔨 Building all services..."
+          # Build sequentially to manage resources on small runners
+          docker compose build monitoring 2>&1 | tee monitoring_build.log
+          docker compose build frontend 2>&1 | tee frontend_build.log
+          docker compose build backend 2>&1 | tee backend_build.log
+          docker compose build scanner 2>&1 | tee scanner_build.log
 
       - name: Reset project containers
         run: |
