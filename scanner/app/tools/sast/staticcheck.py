@@ -9,6 +9,11 @@ class StaticcheckWrapper(ToolWrapper):
         super().__init__(project_path)
         
     @property
+    def command(self) -> List[str]:
+        """CLI invocation for running staticcheck."""
+        return ["staticcheck", "-f", "json", "./..."]
+
+    @property
     def name(self) -> str:
         return "staticcheck"
         
@@ -20,13 +25,10 @@ class StaticcheckWrapper(ToolWrapper):
         return "go" in languages
         
     def run(self) -> List[FindingSchema]:
-        # staticcheck -f json ./...
-        command = ["staticcheck", "-f", "json", "./..."]
-        
         try:
             # Run in project dir
             result = subprocess.run(
-                command, 
+                self.command,
                 cwd=self.project_path, 
                 capture_output=True, 
                 text=True, 
