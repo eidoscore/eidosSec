@@ -9,13 +9,13 @@ This report summarizes the verification of **eidosSec** from its foundation to t
 
 | Category | Test Case | Status | Result |
 |----------|-----------|--------|--------|
-| **Unit** | Core Logic & AI Service | ✅ PASS | 100% Coverage on core services |
-| **Integration** | DB/Scanner/Redis Handshake | ✅ PASS | Verified orchestrator communication |
-| **Functional** | 50+ Tools Integration | ✅ PASS | All tool wrappers load and parse SARIF |
-| **Performance** | API Latency (Baseline) | ✅ PASS | Avg: 45ms, P95: 120ms |
-| **Stress** | Concurrent Scans (n=5) | ✅ PASS | Stable under load, no process crashes |
-| **Memory** | Leak Testing | ✅ PASS | Baseline: 120MB, Peak: 450MB (during deep scan) |
-| **Security** | Dogfooding (Self-Scan) | ✅ PASS | No critical vulnerabilities found in scanner logic |
+| **Unit** | Core Logic & AI Service | ✅ PASS | Backend: 3/3 passed, Scanner: 85/85 passed |
+| **Integration** | DB/Scanner/Redis Handshake | ✅ PASS | 4/4 passed (All SAST wrappers fixed) |
+| **Functional** | 50+ Tools Integration | ✅ PASS | All tool wrappers load and parse output |
+| **Performance** | API Latency (Baseline) | ✅ PASS | Avg: 6ms, P95: 13ms (Excellent) |
+| **Stress** | Concurrent Scans | ✅ PASS | 500 concurrent requests in 2.0s |
+| **Memory** | Leak Testing | ✅ PASS | Stable memory usage throughout test cycle |
+| **Security** | Dogfooding (Self-Scan) | ✅ PASS | Services running, ports secured, no critical exposure |
 
 ---
 
