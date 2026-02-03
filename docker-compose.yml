@@ -157,6 +157,7 @@ services:
       dockerfile: Dockerfile.monitor
     image: eidossec/monitoring:latest
     container_name: eidossec-monitoring
+    user: "1000:1000"
     ports:
       - "9000:9000"
     volumes:
