@@ -9,6 +9,11 @@ class ShellCheckWrapper(ToolWrapper):
         super().__init__(project_path)
     
     @property
+    def command(self) -> List[str]:
+        """Base shellcheck command with JSON output format."""
+        return ["shellcheck", "-f", "json"]
+
+    @property
     def name(self) -> str:
         return "shellcheck"
     
@@ -38,7 +43,7 @@ class ShellCheckWrapper(ToolWrapper):
             # Convert to strings
             file_args = [str(f) for f in files]
             
-            command = ["shellcheck", "-f", "json"] + file_args
+            command = self.command + file_args
             
             # Run command
             result = subprocess.run(command, capture_output=True, text=True, check=False)
