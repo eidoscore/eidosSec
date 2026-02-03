@@ -32,6 +32,14 @@ class ToolWrapper(ABC):
         self.timeout = 300  # 5 minutes default per tool
         
     @property
+    def requires_license(self) -> bool:
+        """
+        Whether this tool requires a PRO license
+        Override in PRO tools to return True
+        """
+        return False
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Tool name (e.g., 'semgrep', 'bandit')"""

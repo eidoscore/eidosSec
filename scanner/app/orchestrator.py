@@ -23,19 +23,25 @@ from app.tools.zap import ZapWrapper
 from app.tools.nuclei import NucleiWrapper
 from app.tools.cfn_nag import CfnNagWrapper
 from app.tools.checkov import CheckovWrapper
+from app.tools.codeql import CodeQLWrapper
+from app.tools.gosec import GosecWrapper
+from app.tools.sast.staticcheck import StaticcheckWrapper
+from app.tools.sast.spotbugs import SpotBugsWrapper
+from app.tools.sast.pmd import PmdWrapper
+from app.tools.sast.shellcheck import ShellCheckWrapper
+from app.tools.sca.retirejs import RetireJsWrapper
+from app.tools.iac.kics import KicsWrapper
 from app.schemas import ScanResultSchema, FindingSchema, ToolResultSchema
+from app.services.license import LicenseVerifier
 
 class ScanOrchestrator:
-    # ... (existing methods)
-
     def __init__(self, project_path: Path, scan_id: str, redis_url: str):
         self.project_path = project_path
         self.scan_id = scan_id
         self.redis_client = redis.from_url(redis_url)
+        self.license_verifier = LicenseVerifier()
         
         # Initialize detectors
-        # Assuming we have detectors module, but for now we mock/stub if needed or use what's available
-        # Based on previous logs, we had detectors. Importing them now.
         from app.detectors.language import LanguageDetector
         from app.detectors.framework import FrameworkDetector
         self.language_detector = LanguageDetector()
@@ -57,8 +63,42 @@ class ScanOrchestrator:
             NucleiWrapper(project_path),
             CfnNagWrapper(project_path),
             CheckovWrapper(project_path),
+            # PRO Tools (Month 5)
+            CodeQLWrapper(project_path),
+            GosecWrapper(project_path),
+            StaticcheckWrapper(project_path),
+            SpotBugsWrapper(project_path),
+            PmdWrapper(project_path),
+            ShellCheckWrapper(project_path),
+            RetireJsWrapper(project_path),
+            KicsWrapper(project_path),
         ]
     
+    # ... (run_scan, _publish_progress, etc. unchanged) ...
+
+    def _filter_tools(self, languages: List[str], framework: str) -> List:
+        """
+        Filter tools based on detected languages AND license status
+        """
+        tools_to_run = []
+        license_status = self.license_verifier.verify()
+        is_pro = license_status.get("plan") in ["pro", "enterprise"]
+        
+        for tool in self.all_tools:
+            # check availability first
+            if not tool.should_run(languages, framework):
+                logger.debug(f"[Scan {self.scan_id}] Skipping {tool.name} (not applicable)")
+                continue
+
+            # check license requirement
+            if tool.requires_license and not is_pro:
+                logger.info(f"[Scan {self.scan_id}] Skipping {tool.name} (requires PRO license)")
+                continue
+
+            tools_to_run.append(tool)
+        
+        return tools_to_run
+
     def run_scan(self) -> ScanResultSchema:
         """
         Execute complete security scan
@@ -81,7 +121,16 @@ class ScanOrchestrator:
             # Step 2: Filter tools based on detected languages/frameworks
             self._publish_progress(10, "Selecting applicable tools...")
             tools_to_run = self._filter_tools(languages, framework)
+            tool_names = [tool.name for tool in tools_to_run]
             logger.info(f"[Scan {self.scan_id}] Running {len(tools_to_run)} tools")
+            
+            # Announce the list of tools that will be run
+            self._publish_progress(
+                12, 
+                f"Selected {len(tools_to_run)} tools: {', '.join(tool_names)}", 
+                tools_total=len(tools_to_run),
+                tools_list=tool_names
+            )
             
             # Step 3: Execute tools sequentially
             all_findings: List[FindingSchema] = []
@@ -90,8 +139,13 @@ class ScanOrchestrator:
             
             for i, tool in enumerate(tools_to_run):
                 # Calculate progress percentage (10% for detection, 80% for tools, 10% for finalization)
-                progress = 10 + int((i / len(tools_to_run)) * 80)
-                self._publish_progress(progress, f"Running {tool.name}...")
+                progress = 15 + int((i / len(tools_to_run)) * 75)
+                self._publish_progress(
+                    progress, 
+                    f"Running {tool.name}...",
+                    current_tool=tool.name,
+                    tool_status="running"
+                )
                 
                 # Execute tool
                 result = tool.execute()
@@ -104,14 +158,29 @@ class ScanOrchestrator:
                         f"[Scan {self.scan_id}] {tool.name}: "
                         f"{len(result.findings)} findings in {result.execution_time:.2f}s"
                     )
+                    # Report completion of this tool
+                    self._publish_progress(
+                        progress, 
+                        f"Completed {tool.name}",
+                        current_tool=tool.name,
+                        tool_status="completed",
+                        findings_count=len(result.findings)
+                    )
                 else:
                     logger.warning(
                         f"[Scan {self.scan_id}] {tool.name} {result.status}: "
                         f"{result.error_message}"
                     )
+                    self._publish_progress(
+                        progress, 
+                        f"Failed {tool.name}",
+                        current_tool=tool.name,
+                        tool_status="failed",
+                        error=result.error_message
+                    )
             
             # Step 4: Deduplicate findings
-            self._publish_progress(85, "Deduplicating findings...")
+            self._publish_progress(90, "Deduplicating findings...")
             deduplicated_findings = self._deduplicate_findings(all_findings)
             
             # Step 5: Finalize
@@ -262,34 +331,15 @@ class ScanOrchestrator:
             metadata=merged_metadata
         )
     
-    def _filter_tools(self, languages: List[str], framework: str) -> List:
-        """
-        Filter tools based on detected languages and frameworks
-        
-        Args:
-            languages: Detected programming languages
-            framework: Detected framework (if any)
-            
-        Returns:
-            List of tools to run
-        """
-        tools_to_run = []
-        
-        for tool in self.all_tools:
-            if tool.should_run(languages, framework):
-                tools_to_run.append(tool)
-            else:
-                logger.info(f"[Scan {self.scan_id}] Skipping {tool.name} (not applicable)")
-        
-        return tools_to_run
     
-    def _publish_progress(self, percentage: int, message: str):
+    def _publish_progress(self, percentage: int, message: str, **kwargs):
         """
         Publish scan progress to Redis pub/sub channel
         
         Args:
             percentage: Progress percentage (0-100)
             message: Progress message
+            **kwargs: Additional data to include in payload
         """
         try:
             progress_data = {
@@ -298,6 +348,8 @@ class ScanOrchestrator:
                 "message": message,
                 "timestamp": datetime.utcnow().isoformat()
             }
+            # Merge extra data
+            progress_data.update(kwargs)
             
             channel = f"scan:{self.scan_id}:progress"
             self.redis_client.publish(channel, json.dumps(progress_data))

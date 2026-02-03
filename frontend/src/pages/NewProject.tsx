@@ -89,17 +89,26 @@ export default function NewProject() {
         setError('')
         setIsDetecting(true)
 
-        // Simulate detection delay (in real app, assume backend does this or we call a detect endpoint)
-        // For now, we'll just check if the path looks real or just move to next step
-        setTimeout(() => {
-            setIsDetecting(false)
-            // Mock result
+        try {
+            const response = await api.post('/projects/detect', { path: formData.path })
+            const data = response.data
+
             setDetectedInfo({
-                languages: ['Python', 'JavaScript'],
-                framework: 'FastAPI'
+                languages: data.languages,
+                framework: data.framework || 'Unknown'
             })
+
+            // Auto-populate framework field if detected
+            if (data.framework) {
+                setFormData(prev => ({ ...prev, framework: data.framework }))
+            }
+
+            setIsDetecting(false)
             setStep(2)
-        }, 1500)
+        } catch (err: any) {
+            setIsDetecting(false)
+            setError(err.response?.data?.detail || 'Failed to detect project details. Please verify the path.')
+        }
     }
 
     const handleCreate = () => {

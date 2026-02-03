@@ -1,6 +1,6 @@
 """Tests for language and framework detectors"""
 import pytest
-from path lib import Path
+from pathlib import Path
 from app.detectors.language import LanguageDetector
 from app.detectors.framework import FrameworkDetector
 
@@ -25,7 +25,7 @@ class TestLanguageDetector:
     def test_detect_multiple_languages(self, test_project):
         """Test detecting multiple languages"""
         detector = LanguageDetector()
-        languages = detector.detect(test_project)
+        languages = detector.detect(test_project, min_files=1)
         
         assert "Python" in languages
         assert "JavaScript" in languages

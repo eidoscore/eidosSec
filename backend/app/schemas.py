@@ -122,7 +122,8 @@ class FindingBase(BaseModel):
     code_snippet: Optional[str] = None
     cwe_id: Optional[str] = None
     owasp_category: Optional[str] = None
-    finding_metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = Field(None, alias="metadata")
+    ai_analysis: Optional[Dict[str, Any]] = None
 
 
 class FindingResponse(FindingBase):
@@ -130,14 +131,15 @@ class FindingResponse(FindingBase):
     scan_id: UUID
     created_at: datetime
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class FindingUpdate(BaseModel):
     """Schema for updating a finding"""
     status: Optional[str] = Field(None, pattern="^(open|fixed|false_positive|accepted_risk|wont_fix)$")
     assigned_to: Optional[str] = Field(None, max_length=100)
-    finding_metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = Field(None, alias="metadata")
+    ai_analysis: Optional[Dict[str, Any]] = None
 
 
 # Pagination
@@ -162,3 +164,28 @@ class ProjectDetectResponse(BaseModel):
     framework: Optional[str]
     files_analyzed: int
     detection_confidence: float  # 0.0 - 1.0
+
+
+# User & Auth Schemas
+class UserBase(BaseModel):
+    email: str
+    role: str = "user"
+    is_active: bool = True
+
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    id: UUID
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
+

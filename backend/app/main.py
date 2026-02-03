@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.database import close_db
-from app.api.v1 import health, projects, scans, findings, websocket
+from app.api.v1 import health, projects, scans, findings, websocket, auth
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +49,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(projects.router, prefix="/api/v1")
 app.include_router(scans.router, prefix="/api/v1")

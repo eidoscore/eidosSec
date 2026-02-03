@@ -1,2 +1,3 @@
-Runner Test: 2026-02-03T02:04:00+07:00
-Status: Checking if you are awake.
+Mega Debug Probe: 2026-02-03T02:40:00+07:00
+Testing: docker, docker compose, paths, and permissions.
+Force Trigger: YES.

@@ -12,6 +12,8 @@ from app.schemas import (
     ProjectDetectRequest, ProjectDetectResponse
 )
 from app.services.detector import detect_project
+from app.services.auth import auth_service
+from app.models import User
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -19,7 +21,8 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_data: ProjectCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user)
 ):
     """
     Create a new project
@@ -124,7 +127,8 @@ async def get_project(
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.check_permissions(["admin"]))
 ):
     """
     Delete a project and all associated scans/findings

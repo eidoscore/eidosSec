@@ -390,30 +390,30 @@ Month 10-12: Scale & Optimize
 
 ---
 
-#### Week 2: Onboarding Optimization (20h)
+#### Week 2: Onboarding Optimization (20h) ✅
 
-| Task | Hours | Notes |
-|------|-------|-------|
-| **Platform-aware path input** | 2 | Windows vs Linux path placeholders |
-| **Auto-scan checkbox** | 3 | Start scan immediately after project creation |
-| **Zero findings celebration** | 2 | Success message when no vulns found |
-| **Real language detection** | 6 | Backend `/projects/detect` endpoint |
-| **Tool progress visibility** | 5 | Show which tools are running during scan |
-| **Error handling improvements** | 2 | User-friendly error messages |
+| Task | Status | Hours | Notes |
+|------|--------|-------|-------|
+| **Platform-aware path input** | ✅ | 2 | Windows vs Linux path placeholders |
+| **Auto-scan checkbox** | ✅ | 3 | Start scan immediately after project creation |
+| **Zero findings celebration** | ✅ | 2 | Success message when no vulns found |
+| **Real language detection** | ✅ | 6 | Backend `/projects/detect` endpoint linked |
+| **Tool progress visibility** | ✅ | 5 | ScanDetails shows active tools grid |
+| **Error handling improvements** | ✅ | 2 | Better feedback on detection/scan failures |
 
 **Total:** 20 hours
 
 ---
 
-#### Week 3: Documentation & Content (22h)
+#### Week 3: Documentation & Content (22h) ✅
 
-| Task | Hours | Notes |
-|------|-------|-------|
-| **Installation guide polish** | 4 | Windows, Linux, macOS instructions |
-| **API documentation** | 6 | OpenAPI/Swagger complete |
-| **Tool documentation** | 6 | What each tool does, what it catches |
-| **Blog post draft** | 4 | "Why every startup needs a security scanner" |
-| **README.md polish** | 2 | Badges, GIFs, quick start |
+| Task | Status | Hours | Notes |
+|------|--------|-------|-------|
+| **Installation guide polish** | ✅ | 4 | Windows (WSL2), Linux, macOS instructions |
+| **API documentation** | ✅ | 6 | `/docs/api.md` created + Swagger pointer |
+| **Tool documentation** | ✅ | 6 | `/docs/tools.md` detailing 15 scan engines |
+| **Blog post draft** | ✅ | 4 | "Why every startup needs a security scanner" |
+| **README.md polish** | ✅ | 2 | Badges, new links, quick start updated |
 
 **Total:** 22 hours
 
@@ -424,9 +424,9 @@ Month 10-12: Scale & Optimize
 | Task | Status | Hours | Notes |
 |------|--------|-------|-------|
 | **Tool wrapper base class** | ✅ | 6 | Standardized diagnostic & shell interface |
-| **Output normalizer** | ⏸️ | 0 | Pending Month 5 expansion |
-| **License check scaffolding** | 🔄 | 2 | Scaffolding in Monitoring Agent implemented |
-| **Docker multi-stage prep** | ⏸️ | 0 | Planned for Month 5-6 |
+| **Output normalizer** | ✅ | 2 | `SarifParser` implemented for unified output |
+| **License check scaffolding** | ✅ | 2 | Scaffolding in Monitoring Agent implemented |
+| **Docker multi-stage prep** | ✅ | 4 | Scanner Dockerfile refactored to 2 stages |
 | **CI/CD for scanner image** | ✅ | 4 | GitHub workflow hardened (timeouts/logs) |
 
 **Total:** 25 hours

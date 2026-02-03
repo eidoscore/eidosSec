@@ -1,62 +1,60 @@
 # eidosSec 🛡️
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
 
 **Secure your code at the speed of thought.**
 
-eidosSec is an AI-powered security scanner that combines traditional static analysis with Large Language Models to provide accurate, actionable vulnerability findings.
+eidosSec is an AI-powered security scanner that combines traditional static analysis with Large Language Models to provide accurate, actionable vulnerability findings. It runs 100% locally using Docker—your code never leaves your machine.
 
 ![Dashboard Preview](docs/images/dashboard-preview.png)
 
+## 📚 Documentation
+
+-   [**Installation Guide**](./docs/installation.md) - Windows (WSL2), Linux, and macOS setup.
+-   [**Supported Tools**](./docs/tools.md) - List of all 15+ integrated security scanners (Semgrep, Bandit, Trivy, etc.).
+-   [**API Reference**](./docs/api.md) - REST API documentation and usage examples.
+-   [**Project Roadmap**](./milestone_development.md) - Development timeline and future features.
+
 ## ✨ Features
 
--   **Multi-Engine Scanning**: Orchestrates multiple open-source security tools (Brakeman, Bandit, Gosec, etc.).
--   **AI Verification**: Uses LLMs to analyze findings, reducing false positives and explaining complex issues.
+-   **Multi-Engine Scanning**: Orchestrates 15+ open-source security tools for comprehensive coverage (SAST, SCA, Secrets, IaC).
+-   **Intelligent Deduplication**: Merges duplicate findings from multiple tools to reduce noise.
 -   **Real-time Progress**: Watch scans execute live via WebSocket streams.
--   **Remediation Advice**: Get code-specific fix suggestions.
--   **Exportable Reports**: Download findings in JSON format.
--   **Self-Hosted**: Full control over your code and data.
+-   **Private & Secure**: Self-hosted architecture ensures no code exfiltration.
+-   **(Coming Soon) AI verification**: Use LLMs to explain and verify complex findings.
 
 ## 🚀 Quick Start
 
-The fastest way to get started is using Docker Compose.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-org/eidosSec.git
+    cd eidosSec
+    ```
 
-```bash
-git clone https://github.com/your-org/eidosSec.git
-cd eidosSec
-docker-compose up -d --build
-```
+2.  **Start with Docker Compose:**
+    ```bash
+    docker-compose up -d --build
+    ```
 
-Access the dashboard at **http://localhost:3000**.
+3.  **Access the Dashboard:**
+    Open [**http://localhost:3000**](http://localhost:3000) in your browser.
 
-## 🛠️ Development
+## 🛠️ Development Structure
 
-### Backend (FastAPI)
+eidosSec is a monorepo consisting of:
 
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+-   `backend/`: FastAPI application (Python)
+-   `frontend/`: React + Vite application (TypeScript/Tailwind)
+-   `scanner/`: Celery worker & tool wrappers (Python)
 
-### Frontend (React)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 📚 Documentation
-
-See the [Documentation](./docs/intro.md) folder for detailed guides.
+See [Installation Guide](./docs/installation.md#local-development-setup) for local development instructions.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please check the [Project Roadmap](./milestone_development.md) to see what we're working on.
 
 ## 📄 License
 

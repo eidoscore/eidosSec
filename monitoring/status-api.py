@@ -42,13 +42,20 @@ class BuildStatus(BaseModel):
     image_size: Optional[str] = None
     error: Optional[str] = None
 
-class DeploymentStatus(BaseModel):
     deployment_id: str
     status: str  # deploying, success, failed
     started_at: str
     completed_at: Optional[str] = None
     branch: str
     services: Optional[List[str]] = None
+
+class LicenseStatus(BaseModel):
+    key: str
+    valid: bool
+    plan: str = "free"  # free, pro, enterprise
+    expires_at: Optional[str] = None
+    features: List[str] = []
+    signature: Optional[str] = None
 
 @app.get("/")
 def root():
@@ -58,13 +65,55 @@ def root():
         "endpoints": {
             "builds": "/api/builds",
             "deployments": "/api/deployments",
-            "status": "/api/status"
+            "status": "/api/status",
+            "license": "/api/license"
         }
     }
 
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+# -----------------------------------------------------------------------------
+# License Management (Scaffolding)
+# -----------------------------------------------------------------------------
+
+@app.post("/api/license/verify")
+def verify_license(license_data: dict):
+    """Verify a license key (Scaffolding)"""
+    key = license_data.get("key", "")
+    
+    # Mock validation logic
+    if key.startswith("PRO-"):
+        return {
+            "valid": True,
+            "plan": "pro",
+            "expires_at": "2099-12-31T23:59:59Z",
+            "features": ["deep_scan", "ai_fix", "pro_tools"]
+        }
+    elif key.startswith("ENT-"):
+        return {
+            "valid": True,
+            "plan": "enterprise",
+            "expires_at": "2099-12-31T23:59:59Z",
+            "features": ["deep_scan", "ai_fix", "pro_tools", "sso", "rbac"]
+        }
+    
+    return {
+        "valid": False,
+        "plan": "free",
+        "error": "Invalid license key format"
+    }
+
+@app.get("/api/license/status")
+def get_license_status():
+    """Get current system license status"""
+    # In a real app, this would read from a secure local store
+    return {
+        "configured": False,
+        "plan": "free",
+        "features": []
+    }
 
 @app.post("/api/builds")
 def create_build(build: BuildStatus):

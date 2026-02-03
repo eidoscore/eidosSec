@@ -7,7 +7,30 @@ jobs:
   test:
     runs-on: [self-hosted, linux, x64]
     steps:
-      - name: Ping Agent
+      - name: Environment Probe
         run: |
-          echo "Runner is ALIVE at $(date)"
-          curl -v http://localhost:9000/health || echo "Agent unreachable from runner"
+          echo "👤 User: $(whoami)"
+          echo "📂 Directory: $(pwd)"
+          echo "🔍 Path: $PATH"
+          
+          echo "🐳 Docker CLI Check..."
+          which docker || echo "docker NOT FOUND in path"
+          docker --version || true
+          
+          echo "🐙 Docker Compose Check..."
+          which docker-compose || echo "docker-compose NOT FOUND"
+          docker-compose --version || true
+          which docker compose || echo "docker compose (space) NOT FOUND"
+          docker compose version || true
+          
+          echo "🛡️  Socket Check..."
+          ls -la /var/run/docker.sock || echo "Socket missing"
+          
+          echo "📊 Resource Check..."
+          df -h /
+          free -m
+          
+      - name: Connectivity Check
+        run: |
+          echo "🌐 Testing internal network..."
+          curl -v http://localhost:9000/health || echo "Agent unreachable"

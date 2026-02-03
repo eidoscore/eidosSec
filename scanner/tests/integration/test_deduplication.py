@@ -29,7 +29,7 @@ def test_deduplication_exact_match(mock_tools):
     # Finding 1 from Tool A
     f1 = FindingSchema(
         type="sqli",
-        description="SQL Injection detected",
+        # description removed
         severity=SeverityLevel.HIGH,
         confidence=80,
         file_path="src/db.py",
@@ -41,7 +41,7 @@ def test_deduplication_exact_match(mock_tools):
     # Finding 2 from Tool B (Exact same location and type)
     f2 = FindingSchema(
         type="sqli",
-        description="SQL Injection",
+        # description removed
         severity=SeverityLevel.HIGH,
         confidence=90,
         file_path="src/db.py",
@@ -76,7 +76,7 @@ def test_deduplication_near_match(mock_tools):
     # Finding 1 at line 10
     f1 = FindingSchema(
         type="xss",
-        description="XSS",
+        # description removed
         severity=SeverityLevel.MEDIUM,
         confidence=50,
         file_path="views/index.html",
@@ -88,7 +88,7 @@ def test_deduplication_near_match(mock_tools):
     # Finding 2 at line 12 (Close enough?)
     f2 = FindingSchema(
         type="xss",
-        description="Cross Site Scripting",
+        # description removed
         severity=SeverityLevel.MEDIUM,
         confidence=50,
         file_path="views/index.html",

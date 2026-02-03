@@ -1,5 +1,5 @@
 """SQLAlchemy database models"""
-from sqlalchemy import Column, String, Text, Integer, Numeric, ForeignKey, TIMESTAMP, CheckConstraint
+from sqlalchemy import Column, String, Text, Integer, Numeric, ForeignKey, TIMESTAMP, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -74,13 +74,27 @@ class Finding(Base):
     owasp_category = Column(String(50))
     detected_by_tools = Column(JSONB, nullable=False, default=list)
     raw_outputs = Column(JSONB, default=dict, nullable=False)
-    finding_metadata = Column(JSONB, default=dict)
+    finding_metadata = Column("metadata", JSONB, default=dict)
+    ai_analysis = Column(JSONB, default=dict, nullable=False)
     status = Column(String(20), default="open", index=True)
     assigned_to = Column(String(100))
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships
     scan = relationship("Scan", back_populates="findings")
+
+
+class User(Base):
+    """User model for RBAC"""
+    __tablename__ = "users"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    role = Column(String(50), default="user", nullable=False) # admin, user, viewer
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+
     
     __table_args__ = (
         CheckConstraint("severity IN ('critical', 'high', 'medium', 'low', 'info')", name="findings_severity_check"),

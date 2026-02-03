@@ -8,6 +8,7 @@ import uuid
 from app.database import get_db
 from app.models import Finding
 from app.schemas import FindingResponse, FindingUpdate
+from app.services.ai_service import ai_service
 
 router = APIRouter(prefix="/findings", tags=["findings"])
 
@@ -67,6 +68,54 @@ async def update_finding(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to update finding: {str(e)}"
+        )
+        
+    return finding
+
+
+@router.post("/{finding_id}/analyze", response_model=FindingResponse)
+async def analyze_finding(
+    finding_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Trigger AI analysis for a specific finding
+    """
+    result = await db.execute(
+        select(Finding).where(Finding.id == finding_id)
+    )
+    finding = result.scalar_one_or_none()
+    
+    if not finding:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Finding {finding_id} not found"
+        )
+    
+    # Prepare data for AI
+    finding_data = {
+        "type": finding.type,
+        "severity": finding.severity,
+        "file_path": finding.file_path,
+        "line_start": finding.line_start,
+        "message": finding.message,
+        "code_snippet": finding.code_snippet
+    }
+    
+    # Perform Analysis
+    analysis_result = await ai_service.analyze_finding(finding_data)
+    
+    # Update Finding
+    finding.ai_analysis = analysis_result
+    
+    try:
+        await db.commit()
+        await db.refresh(finding)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save AI analysis: {str(e)}"
         )
         
     return finding

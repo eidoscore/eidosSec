@@ -13,6 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 export default function ScanDetails() {
     const { id } = useParams<{ id: string }>()
+    const [toolStatuses, setToolStatuses] = useState<Record<string, { status: string, findings?: number }>>({})
+    const [activeTools, setActiveTools] = useState<string[]>([])
+
     const [progress, setProgress] = useState(0)
     const [logs, setLogs] = useState<string[]>([])
 
@@ -59,6 +62,28 @@ export default function ScanDetails() {
                 const data = JSON.parse(event.data)
                 setProgress(data.progress)
                 setLogs(prev => [...prev.slice(-4), data.message]) // Keep last 5 logs
+
+                // valid fields: tools_list, current_tool, tool_status
+                if (data.tools_list) {
+                    setActiveTools(data.tools_list)
+                    // Initialize statuses
+                    const initialStatuses: any = {}
+                    data.tools_list.forEach((t: string) => {
+                        initialStatuses[t] = { status: 'pending' }
+                    })
+                    setToolStatuses(initialStatuses)
+                }
+
+                if (data.current_tool && data.tool_status) {
+                    setToolStatuses(prev => ({
+                        ...prev,
+                        [data.current_tool]: {
+                            status: data.tool_status,
+                            findings: data.findings_count
+                        }
+                    }))
+                }
+
                 if (data.progress === 100) {
                     refetchScan()
                 }
@@ -121,150 +146,187 @@ export default function ScanDetails() {
                     )}
                 </div>
             </div>
-
-            {/* Progress Section (if running) */}
-            {(scan.status === 'in_progress' || scan.status === 'pending') && (
-                <Card className="border-blue-500/20 bg-blue-500/5">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex justify-between">
-                            <span>Scan in Progress...</span>
-                            <span>{progress}%</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Progress value={progress} />
-                        <div className="font-mono text-sm space-y-1 text-muted-foreground h-[120px] overflow-hidden bg-background/50 p-4 rounded-md border">
-                            {logs.map((log, i) => (
-                                <div key={i}>&gt; {log}</div>
-                            ))}
-                            {logs.length === 0 && <div>Waiting for scanner initialization...</div>}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Findings List (if completed) */}
-            {scan.status === 'completed' && (
-                <div className="space-y-4">
-                    {/* Zero Findings Celebration */}
-                    {findings.length === 0 && (
-                        <Card className="border-green-500/30 bg-green-500/5">
-                            <CardContent className="py-12 text-center">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-4">
-                                    <ShieldCheck className="h-8 w-8 text-green-600" />
-                                </div>
-                                <h3 className="text-xl font-semibold text-green-600 mb-2">
-                                    No Vulnerabilities Found!
-                                </h3>
-                                <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                                    Great news! The Quick Scan didn't detect any security issues in your code.
-                                    Consider running a Deep Scan for more comprehensive analysis.
-                                </p>
-                                <div className="flex items-center justify-center gap-3">
-                                    <Button variant="outline" disabled className="opacity-60">
-                                        <Lock className="mr-2 h-4 w-4" />
-                                        Deep Scan (PRO)
-                                    </Button>
-                                    <span className="text-xs text-muted-foreground">
-                                        Coming soon with 60+ security tools
-                                    </span>
+            {
+                (scan.status === 'in_progress' || scan.status === 'pending') && (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <Card className="border-blue-500/20 bg-blue-500/5">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex justify-between">
+                                    <span>Total Progress</span>
+                                    <span>{progress}%</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Progress value={progress} />
+                                <div className="font-mono text-xs space-y-1 text-muted-foreground h-[150px] overflow-hidden bg-background/50 p-4 rounded-md border">
+                                    {logs.map((log, i) => (
+                                        <div key={i}>&gt; {log}</div>
+                                    ))}
+                                    {logs.length === 0 && <div>Initializing scanner...</div>}
                                 </div>
                             </CardContent>
                         </Card>
-                    )}
 
-                    {/* Stats Cards (only show if there are findings) */}
-                    {findings.length > 0 && (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <Card>
-                                    <CardContent className="pt-6">
-                                        <div className="text-2xl font-bold">{scan.total_findings}</div>
-                                        <div className="text-sm text-muted-foreground">Total Findings</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="border-l-4 border-l-red-600">
-                                    <CardContent className="pt-6">
-                                        <div className="text-2xl font-bold text-red-600">
-                                            {findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high').length}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">Critical/High</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="border-l-4 border-l-yellow-500">
-                                    <CardContent className="pt-6">
-                                        <div className="text-2xl font-bold text-yellow-600">
-                                            {findings.filter((f: any) => f.severity === 'medium').length}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">Medium</div>
-                                    </CardContent>
-                                </Card>
-                                <Card className="border-l-4 border-l-blue-500">
-                                    <CardContent className="pt-6">
-                                        <div className="text-2xl font-bold text-blue-600">
-                                            {findings.filter((f: any) => f.severity === 'low' || f.severity === 'info').length}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">Low/Info</div>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Active Tools</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {activeTools.length === 0 ? (
+                                    <div className="text-sm text-muted-foreground flex items-center justify-center h-[150px]">
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Detecting environment...
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {activeTools.map(tool => {
+                                            const state = toolStatuses[tool] || { status: 'pending' }
+                                            return (
+                                                <div key={tool} className="flex items-center justify-between p-2 border rounded-md text-sm bg-background/50">
+                                                    <span className="font-medium">{tool}</span>
+                                                    {state.status === 'pending' && <Badge variant="outline" className="text-xs text-muted-foreground">Pending</Badge>}
+                                                    {state.status === 'running' && <Badge variant="secondary" className="text-xs animate-pulse">Running</Badge>}
+                                                    {state.status === 'completed' && (
+                                                        <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600">
+                                                            {state.findings !== undefined ? `${state.findings} Found` : 'Done'}
+                                                        </Badge>
+                                                    )}
+                                                    {state.status === 'failed' && <Badge variant="destructive" className="text-xs">Failed</Badge>}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
-                            <div className="flex items-center gap-4 py-4">
-                                <div className="relative flex-1 max-w-sm">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Search findings..." className="pl-8" />
+            {/* Findings List (if completed) */}
+            {
+                scan.status === 'completed' && (
+                    <div className="space-y-4">
+                        {/* Zero Findings Celebration */}
+                        {findings.length === 0 && (
+                            <Card className="border-green-500/30 bg-green-500/5">
+                                <CardContent className="py-12 text-center">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-4">
+                                        <ShieldCheck className="h-8 w-8 text-green-600" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-green-600 mb-2">
+                                        No Vulnerabilities Found!
+                                    </h3>
+                                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                                        Great news! The Quick Scan didn't detect any security issues in your code.
+                                        Consider running a Deep Scan for more comprehensive analysis.
+                                    </p>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <Button variant="outline" disabled className="opacity-60">
+                                            <Lock className="mr-2 h-4 w-4" />
+                                            Deep Scan (PRO)
+                                        </Button>
+                                        <span className="text-xs text-muted-foreground">
+                                            Coming soon with 60+ security tools
+                                        </span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Stats Cards (only show if there are findings) */}
+                        {findings.length > 0 && (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <Card>
+                                        <CardContent className="pt-6">
+                                            <div className="text-2xl font-bold">{scan.total_findings}</div>
+                                            <div className="text-sm text-muted-foreground">Total Findings</div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="border-l-4 border-l-red-600">
+                                        <CardContent className="pt-6">
+                                            <div className="text-2xl font-bold text-red-600">
+                                                {findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high').length}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">Critical/High</div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="border-l-4 border-l-yellow-500">
+                                        <CardContent className="pt-6">
+                                            <div className="text-2xl font-bold text-yellow-600">
+                                                {findings.filter((f: any) => f.severity === 'medium').length}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">Medium</div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="border-l-4 border-l-blue-500">
+                                        <CardContent className="pt-6">
+                                            <div className="text-2xl font-bold text-blue-600">
+                                                {findings.filter((f: any) => f.severity === 'low' || f.severity === 'info').length}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">Low/Info</div>
+                                        </CardContent>
+                                    </Card>
                                 </div>
-                                <Button variant="outline">
-                                    <Filter className="mr-2 h-4 w-4" /> Filter
-                                </Button>
-                            </div>
-                        </>
-                    )}
 
-                    {/* Findings Table (only show if there are findings) */}
-                    {findings.length > 0 && (
-                        <div className="border rounded-md">
-                            <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Severity</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>File</TableHead>
-                                    <TableHead>Line</TableHead>
-                                    <TableHead>Confidence</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {findings.map((finding: any) => (
-                                    <TableRow
-                                        key={finding.id}
-                                        className="cursor-pointer hover:bg-muted/50"
-                                        onClick={() => {
-                                            setSelectedFinding(finding)
-                                            setIsModalOpen(true)
-                                        }}
-                                    >
-                                        <TableCell>
-                                            <Badge variant={
-                                                finding.severity === 'critical' ? 'destructive' :
-                                                    finding.severity === 'high' ? 'destructive' :
-                                                        finding.severity === 'medium' ? 'warning' : 'default'
-                                            }>
-                                                {finding.severity}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{finding.type}</TableCell>
-                                        <TableCell className="font-mono text-xs text-muted-foreground">{finding.file_path}</TableCell>
-                                        <TableCell>{finding.line_start}</TableCell>
-                                        <TableCell>{finding.confidence}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        </div>
-                    )}
-                </div>
-            )}
+                                <div className="flex items-center gap-4 py-4">
+                                    <div className="relative flex-1 max-w-sm">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input placeholder="Search findings..." className="pl-8" />
+                                    </div>
+                                    <Button variant="outline">
+                                        <Filter className="mr-2 h-4 w-4" /> Filter
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Findings Table (only show if there are findings) */}
+                        {findings.length > 0 && (
+                            <div className="border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Severity</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>File</TableHead>
+                                            <TableHead>Line</TableHead>
+                                            <TableHead>Confidence</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {findings.map((finding: any) => (
+                                            <TableRow
+                                                key={finding.id}
+                                                className="cursor-pointer hover:bg-muted/50"
+                                                onClick={() => {
+                                                    setSelectedFinding(finding)
+                                                    setIsModalOpen(true)
+                                                }}
+                                            >
+                                                <TableCell>
+                                                    <Badge variant={
+                                                        finding.severity === 'critical' ? 'destructive' :
+                                                            finding.severity === 'high' ? 'destructive' :
+                                                                finding.severity === 'medium' ? 'warning' : 'default'
+                                                    }>
+                                                        {finding.severity}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{finding.type}</TableCell>
+                                                <TableCell className="font-mono text-xs text-muted-foreground">{finding.file_path}</TableCell>
+                                                <TableCell>{finding.line_start}</TableCell>
+                                                <TableCell>{finding.confidence}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+                )
+            }
 
             {/* Finding Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -314,6 +376,6 @@ export default function ScanDetails() {
                 </DialogContent>
             </Dialog>
 
-        </div>
+        </div >
     )
 }

@@ -74,7 +74,12 @@ def test_scanner_output_matches_backend_schema(mock_findings):
     
     for finding_data in data["findings"]:
         # backend.FindingBase has 'type', 'severity', etc.
-        # It also now has 'metadata'
+        # It uses 'finding_metadata' instead of 'metadata'
+        
+        # Map metadata -> finding_metadata
+        if "metadata" in finding_data:
+            # Backend now expects 'metadata' directly (aliased field)
+            pass
         
         # We might need to map enum values if backend expects strings
         # Scanner SeverityLevel.CRITICAL is "critical" (str enum)
