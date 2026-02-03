@@ -1,5 +1,5 @@
 """Health check endpoint"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from datetime import datetime
@@ -13,7 +13,8 @@ router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health_check(db: AsyncSession = Depends(get_db)):
+@router.head("/health")
+async def health_check(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Health check endpoint
     
@@ -22,6 +23,9 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     - Database connectivity
     - Redis connectivity
     """
+    # For HEAD requests, return minimal response
+    if request.method == "HEAD":
+        return {}
     # Check database
     db_status = "disconnected"
     try:
