@@ -9,6 +9,18 @@ class KicsWrapper(ToolWrapper):
         super().__init__(project_path)
     
     @property
+    def command(self) -> List[str]:
+        """KICS CLI command with JSON output."""
+        return [
+            "kics", "scan",
+            "-p", str(self.project_path),
+            "-o", str(self.results_dir),
+            "--output-name", "kics-results.json",
+            "--report-formats", "json",
+            "--ignore-on-exit", "results"
+        ]
+
+    @property
     def name(self) -> str:
         return "kics"
     
@@ -35,7 +47,7 @@ class KicsWrapper(ToolWrapper):
         ]
         
         try:
-            self.run_command(command)
+            self.run_command(self.command)
             if output_file.exists():
                 with open(output_file, 'r', encoding='utf-8') as f:
                     return self.parse_output(f.read())

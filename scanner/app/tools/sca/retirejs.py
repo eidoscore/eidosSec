@@ -9,6 +9,17 @@ class RetireJsWrapper(ToolWrapper):
         super().__init__(project_path)
     
     @property
+    def command(self) -> List[str]:
+        """Retire.js CLI command with JSON output."""
+        output_file = self.results_dir / "retire.json"
+        return [
+            "retire",
+            "--outputformat", "json",
+            "--outputpath", str(output_file),
+            "--path", str(self.project_path)
+        ]
+
+    @property
     def name(self) -> str:
         return "retirejs"
     
@@ -22,15 +33,8 @@ class RetireJsWrapper(ToolWrapper):
     def run(self) -> List[FindingSchema]:
         output_file = self.results_dir / "retire.json"
         
-        command = [
-            "retire",
-            "--outputformat", "json",
-            "--outputpath", str(output_file),
-            "--path", str(self.project_path)
-        ]
-        
         try:
-            self.run_command(command)
+            self.run_command(self.command)
             if output_file.exists():
                 with open(output_file, 'r') as f:
                     return self.parse_output(f.read())
