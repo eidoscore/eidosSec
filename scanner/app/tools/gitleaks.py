@@ -30,6 +30,35 @@ class GitleaksWrapper(ToolWrapper):
             "--exit-code", "0"  # Don't fail on findings
         ]
     
+    def get_version(self) -> str:
+        """Get Gitleaks version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["gitleaks", "version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        """Gitleaks should always run to check for secrets"""
+        return True
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Gitleaks and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            logger.error(f"Gitleaks execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Gitleaks JSON output to findings"""
         findings = []

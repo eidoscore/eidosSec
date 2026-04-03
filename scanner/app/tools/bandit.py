@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 import json
 import logging
+import subprocess
 
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
@@ -28,10 +29,19 @@ class BanditWrapper(ToolWrapper):
             "--quiet"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Only run Bandit if Python is detected"""
-        return "Python" in languages
-    
+        return any(lang.lower() == "python" for lang in languages)
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Bandit and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            logger.error(f"Bandit execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Bandit JSON output to findings"""
         findings = []

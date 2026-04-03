@@ -21,7 +21,23 @@ class CfnNagWrapper(ToolWrapper):
             "--output-format", "json"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get cfn-nag version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["cfn-nag", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if CloudFormation templates are detected"""
         # Check for CloudFormation files
         cfn_patterns = ["*.yaml", "*.yml", "*.json"]
@@ -39,6 +55,16 @@ class CfnNagWrapper(ToolWrapper):
         
         return False
     
+    def execute(self) -> List[FindingSchema]:
+        """Execute cfn-nag and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"cfn-nag execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse cfn-nag JSON output to findings"""
         findings = []

@@ -1,53 +1,57 @@
 import subprocess
 import json
 import xml.etree.ElementTree as ET
-from typing import List
+from typing import List, Optional
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
 
 class PmdWrapper(ToolWrapper):
-    def __init__(self, project_path: str):
-        super().__init__(project_path)
-    
-    @property
-    def command(self) -> List[str]:
-        output_file = self.results_dir / "pmd.xml"
-        return [
-            "pmd", "check",
-            "-d", str(self.project_path),
-            "-R", "rulesets/java/quickstart.xml",
-            "-f", "xml",
-            "-r", str(output_file)
-        ]
-
     @property
     def name(self) -> str:
         return "pmd"
     
     @property
-    def requires_license(self) -> bool:
-        return False # Free tool
-    
-    def should_run(self, languages: List[str], framework: str) -> bool:
-        return "java" in languages
-    
-    def run(self) -> List[FindingSchema]:
-        output_file = self.results_dir / "pmd.xml"
-        
+    def command(self) -> List[str]:
+        return [
+            "pmd", "check",
+            "-d", ".",
+            "-R", "rulesets/java/quickstart.xml",
+            "-f", "xml"
+        ]
+
+    def get_version(self) -> str:
+        """Get PMD version"""
+        import subprocess
         try:
-            subprocess.run(self.command, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            if output_file.exists():
-                 return self.parse_output(output_file)
-            return []
+            result = subprocess.run(
+                ["pmd", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        return any(lang.lower() == "java" for lang in languages)
+    
+    def execute(self) -> List[FindingSchema]:
+        """Execute PMD and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
         except Exception as e:
-            self.logger.error(f"PMD failed: {e}")
+            self.logger.error(f"PMD execution failed: {e}")
             return []
 
-    def parse_output(self, output_file) -> List[FindingSchema]:
+    def parse_output(self, output: str) -> List[FindingSchema]:
         findings = []
         try:
-            tree = ET.parse(output_file)
-            root = tree.getroot()
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(output)
             # <pmd> <file name="..."> <violation ...> ... </violation> </file> </pmd>
             
             for file_elem in root.findall("file"):

@@ -48,6 +48,12 @@ download_tool "trivy" "https://github.com/aquasecurity/trivy/releases/download/v
 # TruffleHog
 download_tool "trufflehog" "https://github.com/trufflesecurity/trufflehog/releases/download/v3.63.2/trufflehog_3.63.2_linux_amd64.tar.gz" "tar.gz"
 
+# Nuclei
+download_tool "nuclei" "https://github.com/projectdiscovery/nuclei/releases/download/v3.2.4/nuclei_3.2.4_linux_amd64.zip" "zip"
+mv nuclei /usr/local/bin/
+rm -f nuclei-config.yaml
+echo "nuclei installed successfully."
+
 # Gosec (PRO)
 download_tool "gosec" "https://github.com/securego/gosec/releases/download/v2.19.0/gosec_2.19.0_linux_amd64.tar.gz" "tar.gz"
 
@@ -99,3 +105,10 @@ tar -xzf kics.tar.gz -C /usr/local/bin/kics-home
 ln -s /usr/local/bin/kics-home/kics /usr/local/bin/kics
 rm kics.tar.gz
 echo "KICS installed successfully."
+
+# ZAP baseline scripts
+echo "Downloading ZAP baseline scripts..."
+wget -q -O /usr/local/bin/zap-baseline.py https://raw.githubusercontent.com/zaproxy/zaproxy/main/docker/zap-baseline.py
+wget -q -O /usr/local/bin/zap_common.py https://raw.githubusercontent.com/zaproxy/zaproxy/main/docker/zap_common.py
+chmod +x /usr/local/bin/zap-baseline.py
+echo "ZAP baseline scripts installed successfully."

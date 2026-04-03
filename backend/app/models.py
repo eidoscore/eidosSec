@@ -16,6 +16,7 @@ class Project(Base):
     path = Column(Text, nullable=False)
     languages = Column(JSONB, default=list, nullable=False)
     framework = Column(String(100))
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True)
     settings = Column(JSONB, default=dict, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -42,6 +43,7 @@ class Scan(Base):
     score = Column(Numeric(3, 1))
     summary = Column(JSONB, default=dict, nullable=False)
     tools_executed = Column(JSONB, default=list, nullable=False)
+    task_id = Column(String(100), index=True)
     error_message = Column(Text)
     
     # Relationships
@@ -74,7 +76,7 @@ class Finding(Base):
     owasp_category = Column(String(50))
     detected_by_tools = Column(JSONB, nullable=False, default=list)
     raw_outputs = Column(JSONB, default=dict, nullable=False)
-    finding_metadata = Column("metadata", JSONB, default=dict)
+    metadata = Column(JSONB, default=dict)
     ai_analysis = Column(JSONB, default=dict, nullable=False)
     status = Column(String(20), default="open", index=True)
     assigned_to = Column(String(100))
@@ -82,6 +84,14 @@ class Finding(Base):
     
     # Relationships
     scan = relationship("Scan", back_populates="findings")
+
+    __table_args__ = (
+        CheckConstraint("severity IN ('critical', 'high', 'medium', 'low', 'info')", name="findings_severity_check"),
+        CheckConstraint("confidence >= 0 AND confidence <= 100", name="findings_confidence_check"),
+        CheckConstraint("line_start > 0", name="findings_line_start_check"),
+        CheckConstraint("line_end >= line_start", name="findings_line_range_check"),
+        CheckConstraint("status IN ('open', 'fixed', 'false_positive', 'accepted_risk', 'wont_fix')", name="findings_status_check"),
+    )
 
 
 class User(Base):
@@ -94,12 +104,3 @@ class User(Base):
     role = Column(String(50), default="user", nullable=False) # admin, user, viewer
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-
-    
-    __table_args__ = (
-        CheckConstraint("severity IN ('critical', 'high', 'medium', 'low', 'info')", name="findings_severity_check"),
-        CheckConstraint("confidence >= 0 AND confidence <= 100", name="findings_confidence_check"),
-        CheckConstraint("line_start > 0", name="findings_line_start_check"),
-        CheckConstraint("line_end >= line_start", name="findings_line_range_check"),
-        CheckConstraint("status IN ('open', 'fixed', 'false_positive', 'accepted_risk', 'wont_fix')", name="findings_status_check"),
-    )

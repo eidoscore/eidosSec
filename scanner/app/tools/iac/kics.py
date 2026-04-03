@@ -1,25 +1,10 @@
 import json
 import subprocess
-from typing import List
+from typing import List, Optional
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
 
 class KicsWrapper(ToolWrapper):
-    def __init__(self, project_path: str):
-        super().__init__(project_path)
-    
-    @property
-    def command(self) -> List[str]:
-        """KICS CLI command with JSON output."""
-        return [
-            "kics", "scan",
-            "-p", str(self.project_path),
-            "-o", str(self.results_dir),
-            "--output-name", "kics-results.json",
-            "--report-formats", "json",
-            "--ignore-on-exit", "results"
-        ]
-
     @property
     def name(self) -> str:
         return "kics"
@@ -28,32 +13,46 @@ class KicsWrapper(ToolWrapper):
     def requires_license(self) -> bool:
         return True # PRO Tool? Let's say yes for business model alignment (Infra Scanning)
     
-    def should_run(self, languages: List[str], framework: str) -> bool:
+    @property
+    def command(self) -> List[str]:
+        """KICS CLI command with JSON output."""
+        # Using stdout for JSON report to avoid file management complexity
+        return [
+            "kics", "scan",
+            "-p", ".",
+            "--report-formats", "json",
+            "--output-path", "/dev/stdout",
+            "--no-progress",
+            "--ignore-on-exit"
+        ]
+
+    def get_version(self) -> str:
+        """Get KICS version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["kics", "version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         # KICS scans many things (dockerfile, k8s, terraform)
-        # We can run it if we detect 'docker', 'terraform', etc OR just always run it if license allows
-        # because it auto-detects files.
         return True 
     
-    def run(self) -> List[FindingSchema]:
-        output_file = self.results_dir / "kics-results.json"
-        
-        command = [
-            "kics", "scan",
-            "-p", str(self.project_path),
-            "-o", str(self.results_dir),
-            "--output-name", "kics-results.json",
-            "--report-formats", "json",
-            "--ignore-on-exit", "results" # Don't exit 1 on findings
-        ]
-        
+    def execute(self) -> List[FindingSchema]:
+        """Execute KICS and return findings"""
         try:
-            self.run_command(self.command)
-            if output_file.exists():
-                with open(output_file, 'r', encoding='utf-8') as f:
-                    return self.parse_output(f.read())
-            return []
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
         except Exception as e:
-            self.logger.error(f"KICS failed: {e}")
+            self.logger.error(f"KICS execution failed: {e}")
             return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:

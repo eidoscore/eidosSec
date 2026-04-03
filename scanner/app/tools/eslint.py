@@ -15,10 +15,35 @@ class EslintWrapper(ToolWrapper):
         # Output format json
         return ["eslint", ".", "--format", "json", "--no-error-on-unmatched-pattern"]
 
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get ESLint version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["eslint", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run only if JavaScript or TypeScript is detected"""
-        target_langs = {"JavaScript", "TypeScript", "Babel", "JSX", "TSX"}
-        return any(lang in target_langs for lang in languages)
+        target_langs = {"javascript", "typescript", "babel", "jsx", "tsx", "node"}
+        return any(lang.lower() in target_langs for lang in languages)
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute ESLint and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"ESLint execution failed: {e}")
+            return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:
         findings = []

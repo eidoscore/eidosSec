@@ -19,8 +19,23 @@ export default function ProjectDetails() {
 
     const project = projectData?.data
 
+    const { data: scansData, isLoading: isScansLoading } = useQuery({
+        queryKey: ['project-scans', id],
+        queryFn: () =>
+            api.get('/scans', {
+                params: {
+                    project_id: id,
+                    limit: 20,
+                    offset: 0,
+                },
+            }),
+        enabled: Boolean(id),
+    })
+
+    const scans = scansData?.data || []
+
     const startScanMutation = useMutation({
-        mutationFn: () => api.post('/scans', { project_id: id, scan_type: 'full' }),
+        mutationFn: () => api.post('/scans', { project_id: id, mode: 'deep' }),
         onSuccess: (data: any) => {
             const scanId = data.data.id
             navigate(`/scans/${scanId}`)
@@ -41,8 +56,16 @@ export default function ProjectDetails() {
         }
     }
 
-    if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>
+    if (isLoading || isScansLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>
     if (!project) return <div>Project not found</div>
+
+    const getDurationDisplay = (scan: any) => {
+        if (!scan.started_at || !scan.completed_at) return '-'
+        const started = new Date(scan.started_at).getTime()
+        const completed = new Date(scan.completed_at).getTime()
+        if (Number.isNaN(started) || Number.isNaN(completed) || completed < started) return '-'
+        return `${((completed - started) / 1000).toFixed(1)}s`
+    }
 
     return (
         <div className="space-y-8">
@@ -92,7 +115,11 @@ export default function ProjectDetails() {
                         <CardTitle className="text-sm font-medium">Last Scan</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-muted-foreground">-</div>
+                        <div className="text-2xl font-bold">
+                            {scans.length > 0
+                                ? new Date(scans[0].started_at).toLocaleDateString()
+                                : '-'}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -102,7 +129,7 @@ export default function ProjectDetails() {
                     <h2 className="text-xl font-bold">Scan History</h2>
                 </div>
 
-                {project.scans && project.scans.length > 0 ? (
+                {scans.length > 0 ? (
                     <div className="border rounded-md">
                         <Table>
                             <TableHeader>
@@ -115,7 +142,7 @@ export default function ProjectDetails() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {project.scans.map((scan: any) => (
+                                {scans.map((scan: any) => (
                                     <TableRow key={scan.id}>
                                         <TableCell>
                                             <Badge variant={
@@ -132,8 +159,8 @@ export default function ProjectDetails() {
                                                 <span className="text-muted-foreground text-xs">{new Date(scan.started_at).toLocaleTimeString()}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell>{scan.total_findings || '-'}</TableCell>
-                                        <TableCell>{scan.execution_time ? `${scan.execution_time.toFixed(1)}s` : '-'}</TableCell>
+                                        <TableCell>{scan.findings_count ?? '-'}</TableCell>
+                                        <TableCell>{getDurationDisplay(scan)}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="outline" size="sm" asChild>
                                                 <Link to={`/scans/${scan.id}`}>View Results</Link>

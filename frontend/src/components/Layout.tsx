@@ -22,13 +22,13 @@ export default function Layout() {
                             Dashboard
                         </Link>
                         <Link
-                            to="/projects"
+                            to="/projects/new"
                             className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                         >
                             Projects
                         </Link>
                         <Link
-                            to="/scans"
+                            to="/"
                             className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                         >
                             Scans

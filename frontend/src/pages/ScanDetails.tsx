@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Filter, Search, ShieldCheck, Lock } from 'lucide-react'
+import { ArrowLeft, Loader2, Search, ShieldCheck, Lock, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,9 +19,17 @@ export default function ScanDetails() {
     const [progress, setProgress] = useState(0)
     const [logs, setLogs] = useState<string[]>([])
 
+    // Pagination & Filter State
+    const [page, setPage] = useState(1)
+    const pageSize = 50
+    const [severityFilter, setSeverityFilter] = useState<string>('all')
+    const [toolFilter, setToolFilter] = useState<string>('all')
+    const [searchQuery, setSearchQuery] = useState('')
+
     // Finding Details Modal
     const [selectedFinding, setSelectedFinding] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isAnalyzing, setIsAnalyzing] = useState(false)
 
     // Fetch Scan Details
     const { data: scanData, isLoading: isScanLoading, refetch: refetchScan } = useQuery({
@@ -29,7 +37,7 @@ export default function ScanDetails() {
         queryFn: () => api.get(`/scans/${id}`) as Promise<any>,
         refetchInterval: (query) => {
             const data = query.state.data as any
-            return data?.data?.status === 'in_progress' ? 1000 : false
+            return data?.data?.status === 'running' ? 1000 : false
         }
     })
 
@@ -37,19 +45,41 @@ export default function ScanDetails() {
 
     // Fetch Findings (only if completed)
     const { data: findingsData } = useQuery({
-        queryKey: ['scan-findings', id],
-        queryFn: () => api.get(`/scans/${id}/findings`) as Promise<any>,
+        queryKey: ['scan-findings', id, page, severityFilter, toolFilter],
+        queryFn: () => {
+            let url = `/scans/${id}/findings?page=${page}&page_size=${pageSize}`
+            if (severityFilter !== 'all') url += `&severity=${severityFilter}`
+            if (toolFilter !== 'all') url += `&tool=${toolFilter}`
+            return api.get(url) as Promise<any>
+        },
         enabled: scan?.status === 'completed'
     })
 
-    const findings = findingsData?.data?.items || []
+    const findingsRaw = findingsData?.data?.items || []
+    const totalFindings = findingsData?.data?.total || 0
+    const totalPages = Math.ceil(totalFindings / pageSize)
+
+    // Filter findings by search query locally
+    const findings = findingsRaw.filter((finding: any) => {
+        if (!searchQuery) return true
+        const query = searchQuery.toLowerCase()
+        return (
+            finding.type.toLowerCase().includes(query) ||
+            finding.message.toLowerCase().includes(query) ||
+            finding.file_path.toLowerCase().includes(query)
+        )
+    })
 
     // WebSocket Connection
     useEffect(() => {
-        if (!scan || scan.status !== 'in_progress') return
+        if (!scan || scan.status !== 'running') return
+
+        const token = localStorage.getItem('token')
+        if (!token) return
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/scans/${id}` // Hardcoded port for dev
+        // Use relative URL for WebSocket to avoid hardcoded ports
+        const wsUrl = `${protocol}//${window.location.host}/ws/scans/${id}?token=${encodeURIComponent(token)}`
 
         const ws = new WebSocket(wsUrl)
 
@@ -115,6 +145,31 @@ export default function ScanDetails() {
         }
     }
 
+    const handleCancel = async () => {
+        if (!window.confirm('Are you sure you want to cancel this scan?')) return
+        try {
+            await api.post(`/scans/${id}/cancel`)
+            refetchScan()
+        } catch (error) {
+            console.error('Cancel failed', error)
+            alert('Failed to cancel scan')
+        }
+    }
+
+    const handleAnalyze = async () => {
+        if (!selectedFinding) return
+        setIsAnalyzing(true)
+        try {
+            const response = await api.post(`/findings/${selectedFinding.id}/analyze`)
+            setSelectedFinding(response.data)
+        } catch (error) {
+            console.error('Analysis failed', error)
+            alert('AI Analysis failed. Please try again later.')
+        } finally {
+            setIsAnalyzing(false)
+        }
+    }
+
     if (isScanLoading) {
         return <div className="flex justify-center p-12"><Loader2 className="animate-spin h-8 w-8" /></div>
     }
@@ -137,6 +192,11 @@ export default function ScanDetails() {
                     </p>
                 </div>
                 <div className="ml-auto">
+                    {(scan.status === 'running' || scan.status === 'pending') && (
+                        <Button onClick={handleCancel} variant="destructive" size="sm">
+                            Cancel Scan
+                        </Button>
+                    )}
                     {scan.status === 'completed' && (
                         <div className="flex gap-2">
                             <Button onClick={handleExport} variant="outline">
@@ -147,7 +207,7 @@ export default function ScanDetails() {
                 </div>
             </div>
             {
-                (scan.status === 'in_progress' || scan.status === 'pending') && (
+                (scan.status === 'running' || scan.status === 'pending') && (
                     <div className="grid gap-6 md:grid-cols-2">
                         <Card className="border-blue-500/20 bg-blue-500/5">
                             <CardHeader>
@@ -240,7 +300,7 @@ export default function ScanDetails() {
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <Card>
                                         <CardContent className="pt-6">
-                                            <div className="text-2xl font-bold">{scan.total_findings}</div>
+                                            <div className="text-2xl font-bold">{scan.summary?.total_findings ?? totalFindings}</div>
                                             <div className="text-sm text-muted-foreground">Total Findings</div>
                                         </CardContent>
                                     </Card>
@@ -270,59 +330,167 @@ export default function ScanDetails() {
                                     </Card>
                                 </div>
 
-                                <div className="flex items-center gap-4 py-4">
+                                <div className="flex flex-wrap items-center gap-3 py-4">
                                     <div className="relative flex-1 max-w-sm">
                                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input placeholder="Search findings..." className="pl-8" />
+                                        <Input 
+                                            placeholder="Search findings..." 
+                                            className="pl-8" 
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
                                     </div>
-                                    <Button variant="outline">
-                                        <Filter className="mr-2 h-4 w-4" /> Filter
-                                    </Button>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-muted-foreground">Severity:</span>
+                                        <select 
+                                            className="h-9 w-[120px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            value={severityFilter}
+                                            onChange={(e) => {
+                                                setSeverityFilter(e.target.value)
+                                                setPage(1)
+                                            }}
+                                        >
+                                            <option value="all">All</option>
+                                            <option value="critical">Critical</option>
+                                            <option value="high">High</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="low">Low</option>
+                                            <option value="info">Info</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-muted-foreground">Tool:</span>
+                                        <select 
+                                            className="h-9 w-[150px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            value={toolFilter}
+                                            onChange={(e) => {
+                                                setToolFilter(e.target.value)
+                                                setPage(1)
+                                            }}
+                                        >
+                                            <option value="all">All Tools</option>
+                                            {scan.tools_executed?.map((tool: string) => (
+                                                <option key={tool} value={tool}>{tool}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {(severityFilter !== 'all' || toolFilter !== 'all' || searchQuery !== '') && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                setSeverityFilter('all')
+                                                setToolFilter('all')
+                                                setSearchQuery('')
+                                                setPage(1)
+                                            }}
+                                            className="text-xs h-9"
+                                        >
+                                            Reset
+                                        </Button>
+                                    )}
                                 </div>
                             </>
                         )}
 
                         {/* Findings Table (only show if there are findings) */}
                         {findings.length > 0 && (
-                            <div className="border rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Severity</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>File</TableHead>
-                                            <TableHead>Line</TableHead>
-                                            <TableHead>Confidence</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {findings.map((finding: any) => (
-                                            <TableRow
-                                                key={finding.id}
-                                                className="cursor-pointer hover:bg-muted/50"
-                                                onClick={() => {
-                                                    setSelectedFinding(finding)
-                                                    setIsModalOpen(true)
-                                                }}
-                                            >
-                                                <TableCell>
-                                                    <Badge variant={
-                                                        finding.severity === 'critical' ? 'destructive' :
-                                                            finding.severity === 'high' ? 'destructive' :
-                                                                finding.severity === 'medium' ? 'warning' : 'default'
-                                                    }>
-                                                        {finding.severity}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="font-medium">{finding.type}</TableCell>
-                                                <TableCell className="font-mono text-xs text-muted-foreground">{finding.file_path}</TableCell>
-                                                <TableCell>{finding.line_start}</TableCell>
-                                                <TableCell>{finding.confidence}</TableCell>
+                            <>
+                                <div className="border rounded-md">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Severity</TableHead>
+                                                <TableHead>Type</TableHead>
+                                                <TableHead>File</TableHead>
+                                                <TableHead>Line</TableHead>
+                                                <TableHead>Confidence</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {findings.map((finding: any) => (
+                                                <TableRow
+                                                    key={finding.id}
+                                                    className="cursor-pointer hover:bg-muted/50"
+                                                    onClick={() => {
+                                                        setSelectedFinding(finding)
+                                                        setIsModalOpen(true)
+                                                    }}
+                                                >
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={
+                                                                finding.severity === 'critical' || finding.severity === 'high'
+                                                                    ? 'destructive'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {finding.severity}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{finding.type}</TableCell>
+                                                    <TableCell className="font-mono text-xs text-muted-foreground">{finding.file_path}</TableCell>
+                                                    <TableCell>{finding.line_start}</TableCell>
+                                                    <TableCell>{finding.confidence}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between py-4">
+                                        <div className="text-sm text-muted-foreground">
+                                            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalFindings)} of {totalFindings} findings
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                                disabled={page === 1}
+                                            >
+                                                Previous
+                                            </Button>
+                                            <div className="flex items-center gap-1">
+                                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                    // Simple pagination window logic
+                                                    let pageNum = i + 1
+                                                    if (totalPages > 5 && page > 3) {
+                                                        pageNum = page - 3 + i
+                                                        if (pageNum > totalPages) pageNum = totalPages - (4 - i)
+                                                    }
+                                                    if (pageNum <= 0) return null
+
+                                                    return (
+                                                        <Button
+                                                            key={pageNum}
+                                                            variant={page === pageNum ? "default" : "outline"}
+                                                            size="sm"
+                                                            className="w-8"
+                                                            onClick={() => setPage(pageNum)}
+                                                        >
+                                                            {pageNum}
+                                                        </Button>
+                                                    )
+                                                })}
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={page === totalPages}
+                                            >
+                                                Next
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )
@@ -364,13 +532,64 @@ export default function ScanDetails() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <h4 className="font-medium mb-1">CWE</h4>
-                                <div className="text-sm">{selectedFinding?.cwe_id || 'N/A'}</div>
+                                <h4 className="font-medium mb-1 text-sm">CWE</h4>
+                                <div className="text-sm text-muted-foreground">{selectedFinding?.cwe_id || 'N/A'}</div>
                             </div>
                             <div>
-                                <h4 className="font-medium mb-1">OWASP</h4>
-                                <div className="text-sm">{selectedFinding?.owasp_category || 'N/A'}</div>
+                                <h4 className="font-medium mb-1 text-sm">OWASP</h4>
+                                <div className="text-sm text-muted-foreground">{selectedFinding?.owasp_category || 'N/A'}</div>
                             </div>
+                        </div>
+
+                        <div className="pt-4 border-t">
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-semibold flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-blue-500" />
+                                    AI Security Analysis
+                                </h4>
+                                {!selectedFinding?.ai_analysis?.analysis && (
+                                    <Button
+                                        size="sm"
+                                        onClick={handleAnalyze}
+                                        disabled={isAnalyzing}
+                                    >
+                                        {isAnalyzing ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                Analyzing...
+                                            </>
+                                        ) : (
+                                            'Generate Analysis'
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+
+                            {selectedFinding?.ai_analysis?.analysis ? (
+                                <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-4 space-y-3">
+                                    <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                                        {selectedFinding.ai_analysis.analysis}
+                                    </div>
+                                    {selectedFinding.ai_analysis.recommendation && (
+                                        <div className="mt-4 p-3 bg-background rounded border border-blue-500/20">
+                                            <h5 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">Recommendation</h5>
+                                            <p className="text-sm">{selectedFinding.ai_analysis.recommendation}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : !isAnalyzing && (
+                                <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg text-center">
+                                    No AI analysis available for this finding yet.
+                                </div>
+                            )}
+
+                            {isAnalyzing && (
+                                <div className="space-y-3 animate-pulse">
+                                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                                    <div className="h-4 bg-muted rounded w-full"></div>
+                                    <div className="h-4 bg-muted rounded w-5/6"></div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </DialogContent>

@@ -1,58 +1,59 @@
 import json
 import subprocess
-from typing import List
+from typing import List, Optional
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
 
 class ShellCheckWrapper(ToolWrapper):
-    def __init__(self, project_path: str):
-        super().__init__(project_path)
+    @property
+    def name(self) -> str:
+        return "shellcheck"
     
     @property
     def command(self) -> List[str]:
         """Base shellcheck command with JSON output format."""
         return ["shellcheck", "-f", "json"]
 
-    @property
-    def name(self) -> str:
-        return "shellcheck"
-    
-    @property
-    def requires_license(self) -> bool:
-        return False
-    
-    def should_run(self, languages: List[str], framework: str) -> bool:
-        return "shell" in languages or "bash" in languages
-    
-    def run(self) -> List[FindingSchema]:
-        # ShellCheck requires finding files first.
-        # find . -name "*.sh" -exec shellcheck -f json {} +
-        # But we can also use 'find' and pipe to xargs if we want, or just loop in python.
-        # Simpler: use shell globbing if shell=True or find command.
-        
-        # Let's verify if there are shell files first? 
-        # Actually 'should_run' accounts for that usually, but we need to pass filenames to shellcheck.
-        
-        # We'll use a find command to get shell files and pass them.
+    def get_version(self) -> str:
+        """Get ShellCheck version"""
+        import subprocess
         try:
-            # Safer way: find files in python
+            result = subprocess.run(
+                ["shellcheck", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # ShellCheck version output is multi-line
+                for line in result.stdout.splitlines():
+                    if line.startswith("version:"):
+                        return line.replace("version:", "").strip()
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        shell_langs = ["shell", "bash", "sh"]
+        return any(lang.lower() in shell_langs for lang in languages)
+    
+    def execute(self) -> List[FindingSchema]:
+        """Execute shellcheck and return findings"""
+        try:
+            # Find shell files
             files = list(self.project_path.glob("**/*.sh"))
             if not files:
                 return []
-                
-            # Convert to strings
-            file_args = [str(f) for f in files]
             
-            command = self.command + file_args
+            # Convert to relative paths for cleaner output
+            file_args = [str(f.relative_to(self.project_path)) for f in files]
             
-            # Run command
-            result = subprocess.run(command, capture_output=True, text=True, check=False)
-            
-            # ShellCheck returns JSON array or empty
-            return self.parse_output(result.stdout)
-            
+            # Base execute_command returns stdout
+            output = self.execute_command(self.command + file_args)
+            return self.parse_output(output)
         except Exception as e:
-            self.logger.error(f"ShellCheck failed: {e}")
+            self.logger.error(f"ShellCheck execution failed: {e}")
             return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:

@@ -17,12 +17,38 @@ class NpmAuditWrapper(ToolWrapper):
             "npm", "audit", "--json"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get npm version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["npm", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return f"npm {result.stdout.strip()}"
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if JavaScript/TypeScript detected and package.json exists"""
-        if "JavaScript" not in languages and "TypeScript" not in languages:
+        is_js_ts = any(lang.lower() in ["javascript", "typescript"] for lang in languages)
+        if not is_js_ts:
             return False
             
         return (self.project_path / "package.json").exists()
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute npm audit and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"npm audit execution failed: {e}")
+            return []
     
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse npm audit JSON output to findings"""

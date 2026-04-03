@@ -28,3 +28,9 @@ celery_app.conf.update(
     task_default_retry_delay=60,
     task_max_retries=3,
 )
+
+celery_app.conf.task_routes = {
+    "app.tasks.process_scan_results": {"queue": "backend_tasks"},
+    "app.tasks.generate_report": {"queue": "backend_tasks"},
+    "app.tasks.cleanup_old_scans": {"queue": "backend_tasks"},
+}

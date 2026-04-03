@@ -1,13 +1,21 @@
-from typing import List
+from typing import List, Optional
+import logging
+
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema
 from app.parsers.sarif import SarifParser
 
+logger = logging.getLogger(__name__)
+
+
 class CodeQLWrapper(ToolWrapper):
+    def _output_file(self):
+        return self.get_output_path("codeql-results.sarif")
+
     @property
     def name(self) -> str:
         return "codeql"
-    
+
     @property
     def requires_license(self) -> bool:
         return True
@@ -16,23 +24,66 @@ class CodeQLWrapper(ToolWrapper):
     def command(self) -> List[str]:
         # In a real scenario, this would involve complex database creation and analysis steps.
         # For this wrapper, we assume a build script or simplified command that outputs SARIF.
-        return ["codeql", "database", "analyze", "--format=sarif-latest", "--output=codeql-results.sarif", "."]
+        return [
+            "codeql",
+            "database",
+            "analyze",
+            "--format=sarif-latest",
+            f"--output={self._output_file()}",
+            ".",
+        ]
+
+    def get_version(self) -> str:
+        """Get CodeQL version"""
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["codeql", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                # CodeQL version output is usually the first line
+                return result.stdout.splitlines()[0].strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        # CodeQL supports many languages
+        supported = ["python", "javascript", "typescript", "go", "java", "cpp", "csharp", "ruby"]
+        return any(lang.lower() in supported for lang in languages)
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute CodeQL and return findings"""
+        try:
+            # CodeQL usually outputs to a file, so we override execute to handle that
+            self.execute_command(self.command)
+
+            # Read the generated SARIF file
+            sarif_file = self._output_file()
+            if sarif_file.exists():
+                with open(sarif_file, "r", encoding="utf-8") as f:
+                    return SarifParser.parse(f.read(), self.name)
+            return []
+        except Exception as e:
+            logger.error("CodeQL execution failed: %s", e)
+            return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:
-        # CodeQL writes to a file, but for the base class execute() pattern we might need to read that file.
-        # However, Base ToolWrapper captures STDOUT.
-        # We'll assume for now we might read the file if generated, or just parse if it was cat'd to stdout.
-        # Since standard CodeQL output is to file, we'd normally override execute().
-        # But let's assume we can read the file content here or the command cats it.
-        
-        # NOTE: In a real implementation, we would override execute() to read the file.
-        # For now, let's use the SarifParser on the 'output' assuming the runner managed to capture it
-        # or we read it from the file system.
-        
-        # Let's try to read the file if it exists, otherwise fall back to provided output
-        try:
-            with open(self.project_path / "codeql-results.sarif", "r") as f:
-                content = f.read()
-                return SarifParser.parse(content, self.name)
-        except FileNotFoundError:
+        """Parse SARIF output either from stdout or the generated output file."""
+        if output and output.strip():
             return SarifParser.parse(output, self.name)
+
+        sarif_file = self._output_file()
+        if not sarif_file.exists():
+            return []
+
+        try:
+            with open(sarif_file, "r", encoding="utf-8") as f:
+                return SarifParser.parse(f.read(), self.name)
+        except Exception as exc:
+            logger.error("Failed to read CodeQL SARIF file: %s", exc)
+            return []

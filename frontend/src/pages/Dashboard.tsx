@@ -26,6 +26,12 @@ export default function Dashboard() {
         queryKey: ['projects'],
         queryFn: () => api.get('/projects') as Promise<any>,
     })
+    
+    const { data: scanStats, isLoading: statsLoading } = useQuery({
+        queryKey: ['scan-stats'],
+        queryFn: () => api.get('/scans/stats') as Promise<any>,
+        refetchInterval: 10000,
+    })
 
     const projects = projectsData?.data || []
 
@@ -103,7 +109,11 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {projects.reduce((acc: number, p: Project) => acc + p.scans_count, 0)}
+                            {statsLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                scanStats?.data?.total_scans || 0
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -112,7 +122,13 @@ export default function Dashboard() {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Active Scans</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">
+                            {statsLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                scanStats?.data?.active_scans || 0
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>

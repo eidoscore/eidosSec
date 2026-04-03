@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 import json
 import logging
+import subprocess
 
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
@@ -30,6 +31,39 @@ class SemgrepWrapper(ToolWrapper):
             "."
         ]
     
+    def get_version(self) -> str:
+        """Override to handle semgrep --version output format"""
+        try:
+            result = subprocess.run(
+                ["semgrep", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # Semgrep version is just the string
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        """Semgrep supports multiple languages"""
+        supported = [
+            "python", "javascript", "typescript", "go", "java", "ruby", 
+            "php", "c", "cpp", "csharp", "ocaml", "rust", "swift"
+        ]
+        return any(lang.lower() in supported for lang in languages)
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Semgrep and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            logger.error(f"Semgrep execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Semgrep JSON output to findings"""
         findings = []

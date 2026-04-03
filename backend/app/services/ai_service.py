@@ -79,7 +79,7 @@ class AIService:
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {self.openai_api_key}"},
                 json={
-                    "model": "gpt-4-turbo-preview",
+                    "model": "gpt-4o",
                     "messages": [
                         {"role": "system", "content": "You are a specialized security analysis AI. Output valid JSON only."},
                         {"role": "user", "content": prompt}
@@ -95,8 +95,32 @@ class AIService:
 
     async def _call_anthropic(self, prompt: str) -> Dict[str, Any]:
         """Call Anthropic API"""
-        # Placeholder for Anthropic implementation
-        return {"error": "Anthropic not fully implemented yet"}
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": self.anthropic_api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json"
+                },
+                json={
+                    "model": "claude-3-5-sonnet-20240620",
+                    "max_tokens": 1024,
+                    "messages": [
+                        {"role": "user", "content": prompt + "\n\nOutput ONLY valid JSON."}
+                    ]
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            content = data["content"][0]["text"]
+            # Clean up potential markdown if any
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+            return json.loads(content)
 
     def _mock_analysis(self, finding: Dict[str, Any]) -> Dict[str, Any]:
         """Mock analysis for development/testing"""

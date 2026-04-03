@@ -30,8 +30,13 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Handle unauthorized
+            // Handle unauthorized: clear token and force explicit re-auth flow.
             localStorage.removeItem('token')
+            const currentPath = `${window.location.pathname}${window.location.search}`
+            if (!window.location.pathname.startsWith('/auth')) {
+                const next = encodeURIComponent(currentPath)
+                window.location.href = `/auth?reason=session_expired&next=${next}`
+            }
         }
         return Promise.reject(error)
     }

@@ -26,9 +26,35 @@ class ZapWrapper(ToolWrapper):
             "--auto"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get ZAP version"""
+        import subprocess
+        try:
+            # ZAP baseline script version
+            result = subprocess.run(
+                ["zap-baseline.py", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run ZAP only if target URL is configured"""
         return self._get_target_url() is not None
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute ZAP and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"ZAP execution failed: {e}")
+            return []
     
     def _get_target_url(self) -> Optional[str]:
         """Get target URL from environment or config file"""

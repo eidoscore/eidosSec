@@ -15,16 +15,42 @@ class BrakemanWrapper(ToolWrapper):
         # --quiet to reduce noise
         return ["brakeman", ".", "--format", "json", "--quiet", "--no-exit-on-warn", "--no-exit-on-error"]
 
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get Brakeman version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["brakeman", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if Ruby is detected or Rails framework is identified"""
-        if "Ruby" in languages:
+        if any(lang.lower() == "ruby" for lang in languages):
             return True
-        if framework and "Rails" in framework:
+        if framework and "rails" in framework.lower():
             return True
         
         # Check for Gemfile or Rails structure if framework detection missed it
         gemfile = self.project_path / "Gemfile"
         return gemfile.exists()
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Brakeman and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Brakeman execution failed: {e}")
+            return []
 
     def _map_severity(self, brakeman_severity: str) -> SeverityLevel:
         if brakeman_severity == "High":

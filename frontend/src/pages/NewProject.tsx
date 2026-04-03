@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2, FolderOpen, Code2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Zap } from 'lucide-react'
@@ -8,21 +8,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 
-// Detect operating system for path placeholder
-const getOSInfo = () => {
-    const platform = navigator.platform.toLowerCase()
-    if (platform.includes('win')) {
-        return {
-            isWindows: true,
-            placeholder: 'e.g. C:\\Users\\dev\\projects\\my-app',
-            hint: 'Use backslashes (\\) for Windows paths'
-        }
+const CONTAINER_PROJECT_ROOT = '/app/projects'
+const CONTAINER_PROJECT_EXAMPLE = '/app/projects/my-app'
+
+const normalizePathInput = (rawPath: string): string => rawPath.trim().replace(/\\/g, '/')
+
+const getPathMismatchHint = (rawPath: string): string | null => {
+    if (!rawPath.trim()) return null
+
+    const normalized = normalizePathInput(rawPath)
+    if (rawPath.includes('\\')) {
+        return 'Terdeteksi host path Windows. Gunakan path container mount seperti /app/projects/<nama-project>.'
     }
-    return {
-        isWindows: false,
-        placeholder: 'e.g. /home/user/projects/my-app',
-        hint: 'Use forward slashes (/) for Linux/macOS paths'
+
+    if (!normalized.startsWith(`${CONTAINER_PROJECT_ROOT}/`) && normalized !== CONTAINER_PROJECT_ROOT) {
+        return `Path harus berada di dalam ${CONTAINER_PROJECT_ROOT} agar bisa diakses backend/scanner container.`
     }
+
+    if (normalized === CONTAINER_PROJECT_ROOT) {
+        return `Gunakan folder project spesifik, contoh: ${CONTAINER_PROJECT_EXAMPLE}.`
+    }
+
+    return null
 }
 
 export default function NewProject() {
@@ -37,12 +44,10 @@ export default function NewProject() {
     const [error, setError] = useState('')
     const [autoScan, setAutoScan] = useState(true) // Auto-scan enabled by default
 
-    // Platform detection
-    const osInfo = useMemo(() => getOSInfo(), [])
-
     // Mock detection loading state
     const [isDetecting, setIsDetecting] = useState(false)
     const [detectedInfo, setDetectedInfo] = useState<{ languages: string[], framework: string } | null>(null)
+    const pathMismatchHint = getPathMismatchHint(formData.path)
 
     const createProjectMutation = useMutation({
         mutationFn: (data: any) => api.post('/projects', data),
@@ -55,7 +60,7 @@ export default function NewProject() {
                 try {
                     const scanResponse = await api.post('/scans', {
                         project_id: projectId,
-                        scan_type: 'quick'
+                        mode: 'quick'
                     })
                     const scanId = scanResponse.data?.id
                     if (scanId) {
@@ -81,16 +86,24 @@ export default function NewProject() {
     })
 
     const handlePathSubmit = async () => {
-        if (!formData.name || !formData.path) {
+        if (!formData.name || !formData.path.trim()) {
             setError('Please fill in all fields')
+            return
+        }
+
+        const normalizedPath = normalizePathInput(formData.path)
+        const mismatch = getPathMismatchHint(normalizedPath)
+        if (mismatch) {
+            setError(mismatch)
             return
         }
 
         setError('')
         setIsDetecting(true)
+        setFormData(prev => ({ ...prev, path: normalizedPath }))
 
         try {
-            const response = await api.post('/projects/detect', { path: formData.path })
+            const response = await api.post('/projects/detect', { path: normalizedPath })
             const data = response.data
 
             setDetectedInfo({
@@ -107,7 +120,12 @@ export default function NewProject() {
             setStep(2)
         } catch (err: any) {
             setIsDetecting(false)
-            setError(err.response?.data?.detail || 'Failed to detect project details. Please verify the path.')
+            const detail = err.response?.data?.detail
+            if (typeof detail === 'string' && detail.toLowerCase().includes('not found')) {
+                setError(`Path tidak ditemukan dari container. Pastikan repository Anda termount di ${CONTAINER_PROJECT_ROOT} dan gunakan path container, bukan path host OS.`)
+            } else {
+                setError(detail || 'Failed to detect project details. Please verify the container path.')
+            }
         }
     }
 
@@ -137,7 +155,9 @@ export default function NewProject() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Project Details</CardTitle>
-                        <CardDescription>Enter the path to the local source code you want to scan.</CardDescription>
+                        <CardDescription>
+                            Masukkan path project yang terlihat dari container runtime. Gunakan prefix <code>{CONTAINER_PROJECT_ROOT}</code>.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
@@ -152,14 +172,20 @@ export default function NewProject() {
                             <label className="text-sm font-medium">Local Path</label>
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder={osInfo.placeholder}
+                                    placeholder={CONTAINER_PROJECT_EXAMPLE}
                                     value={formData.path}
                                     onChange={(e) => setFormData({ ...formData, path: e.target.value })}
                                 />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Absolute path to the project root directory. {osInfo.hint}
+                                Gunakan absolute path container, misalnya <code>{CONTAINER_PROJECT_EXAMPLE}</code>. Host path seperti <code>C:\...</code> atau <code>/home/...</code> tidak bisa diakses scanner container.
                             </p>
+                            {pathMismatchHint && (
+                                <div className="bg-yellow-500/10 text-yellow-700 text-xs p-2 rounded-md border border-yellow-500/30 flex items-start gap-2">
+                                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5" />
+                                    <span>{pathMismatchHint}</span>
+                                </div>
+                            )}
                         </div>
 
                         {error && (

@@ -29,6 +29,36 @@ class TrivyWrapper(ToolWrapper):
             "--quiet"
         ]
     
+    def get_version(self) -> str:
+        """Get Trivy version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["trivy", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # Trivy version output can be multi-line, get first line
+                return result.stdout.split('\n')[0].strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        """Trivy supports multiple package managers"""
+        return True # Always run as it's a versatile SCA tool
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Trivy and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            logger.error(f"Trivy execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Trivy JSON output to findings"""
         findings = []

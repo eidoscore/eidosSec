@@ -15,9 +15,34 @@ class PhpstanWrapper(ToolWrapper):
         # Level 5 is a good balance for security checks
         return ["phpstan", "analyse", ".", "--level=5", "--no-progress", "--error-format=json"]
 
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get PHPStan version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["phpstan", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run only if PHP is detected"""
-        return "PHP" in languages
+        return any(lang.lower() == "php" for lang in languages)
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute PHPStan and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"PHPStan execution failed: {e}")
+            return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:
         findings = []

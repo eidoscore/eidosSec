@@ -1,6 +1,6 @@
 import json
 import subprocess
-from typing import List
+from typing import List, Optional
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
 
@@ -11,11 +11,10 @@ class RetireJsWrapper(ToolWrapper):
     @property
     def command(self) -> List[str]:
         """Retire.js CLI command with JSON output."""
-        output_file = self.results_dir / "retire.json"
+        # Using stdout for simplicity if possible, but RetireJS prefers file output for JSON
         return [
             "retire",
             "--outputformat", "json",
-            "--outputpath", str(output_file),
             "--path", str(self.project_path)
         ]
 
@@ -27,20 +26,34 @@ class RetireJsWrapper(ToolWrapper):
     def requires_license(self) -> bool:
         return False
     
-    def should_run(self, languages: List[str], framework: str) -> bool:
-        return "javascript" in languages or "typescript" in languages or "node" in languages
-    
-    def run(self) -> List[FindingSchema]:
-        output_file = self.results_dir / "retire.json"
-        
+    def get_version(self) -> str:
+        """Get Retire.js version"""
+        import subprocess
         try:
-            self.run_command(self.command)
-            if output_file.exists():
-                with open(output_file, 'r') as f:
-                    return self.parse_output(f.read())
-            return []
+            result = subprocess.run(
+                ["retire", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        js_langs = ["javascript", "typescript", "node"]
+        return any(lang.lower() in js_langs for lang in languages)
+    
+    def execute(self) -> List[FindingSchema]:
+        """Execute Retire.js and return findings"""
+        try:
+            # RetireJS outputs JSON to stdout by default if --outputpath is not provided
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
         except Exception as e:
-            self.logger.error(f"Retire.js failed: {e}")
+            self.logger.error(f"Retire.js execution failed: {e}")
             return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:

@@ -17,12 +17,38 @@ class ComposerAuditWrapper(ToolWrapper):
             "composer", "audit", "--format=json"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get composer version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["composer", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if PHP detected and composer.json exists"""
-        if "PHP" not in languages:
+        is_php = any(lang.lower() == "php" for lang in languages)
+        if not is_php:
             return False
             
         return (self.project_path / "composer.json").exists()
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Composer audit and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"Composer audit execution failed: {e}")
+            return []
     
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Composer audit JSON output to findings"""

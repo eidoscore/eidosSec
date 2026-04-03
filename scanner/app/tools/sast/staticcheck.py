@@ -1,6 +1,6 @@
 import json
 import subprocess
-from typing import List
+from typing import List, Optional
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
 
@@ -21,22 +21,33 @@ class StaticcheckWrapper(ToolWrapper):
     def requires_license(self) -> bool:
         return False # Free tool commonly
         
-    def should_run(self, languages: List[str], framework: str) -> bool:
-        return "go" in languages
-        
-    def run(self) -> List[FindingSchema]:
+    def get_version(self) -> str:
+        """Get Staticcheck version"""
+        import subprocess
         try:
-            # Run in project dir
             result = subprocess.run(
-                self.command,
-                cwd=self.project_path, 
-                capture_output=True, 
-                text=True, 
-                check=False 
+                ["staticcheck", "-version"],
+                capture_output=True,
+                text=True,
+                timeout=5
             )
-            return self.parse_output(result.stdout)
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        return any(lang.lower() == "go" for lang in languages)
+        
+    def execute(self) -> List[FindingSchema]:
+        """Execute staticcheck and return findings"""
+        try:
+            # Base execute captures stdout
+            output = super().execute_command(self.command)
+            return self.parse_output(output)
         except Exception as e:
-            self.logger.error(f"Staticcheck failed: {e}")
+            self.logger.error(f"Staticcheck execution failed: {e}")
             return []
             
     def parse_output(self, output: str) -> List[FindingSchema]:

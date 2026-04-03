@@ -15,13 +15,39 @@ class SafetyWrapper(ToolWrapper):
         # --full-report might give more details, but check implies basic check
         return ["pipx", "run", "safety", "check", "--json"]
 
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get Safety version"""
+        import subprocess
+        try:
+            # Try safety --version
+            result = subprocess.run(
+                ["pipx", "run", "safety", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if Python is detected or requirements.txt exists"""
-        if "Python" in languages:
+        if any(lang.lower() == "python" for lang in languages):
             return True
         
         req_file = self.project_path / "requirements.txt"
         return req_file.exists()
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute Safety and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            self.logger.error(f"Safety execution failed: {e}")
+            return []
 
     def parse_output(self, output: str) -> List[FindingSchema]:
         findings = []

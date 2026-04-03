@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 import json
 import logging
+import subprocess
 
 from app.tools.base import ToolWrapper
 from app.schemas import FindingSchema, SeverityLevel
@@ -28,6 +29,35 @@ class TruffleHogWrapper(ToolWrapper):
             "--no-update"
         ]
     
+    def get_version(self) -> str:
+        """Override to handle trufflehog version output format"""
+        try:
+            result = subprocess.run(
+                ["trufflehog", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # TruffleHog version is usually just the string
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
+        """TruffleHog should always run to check for secrets"""
+        return True
+
+    def execute(self) -> List[FindingSchema]:
+        """Execute TruffleHog and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            logger.error(f"TruffleHog execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse TruffleHog JSON output to findings"""
         findings = []

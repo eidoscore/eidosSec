@@ -33,6 +33,7 @@ services:
       dockerfile: Dockerfile
     image: eidossec/backend:latest
     container_name: eidossec-backend
+    command: sh -c "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -67,7 +68,7 @@ services:
       dockerfile: Dockerfile
     image: eidossec/backend:latest
     container_name: eidossec-celery
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --queues backend_tasks
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +92,7 @@ services:
       dockerfile: Dockerfile
     image: eidossec/scanner:latest
     container_name: eidossec-scanner
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10 --queues scans
     depends_on:
       redis:
         condition: service_healthy
@@ -99,6 +101,10 @@ services:
     restart: unless-stopped
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - SCAN_RESULTS_DIR=/app/scan-results
+      - ENABLE_STABILIZATION_TOOLS=${ENABLE_STABILIZATION_TOOLS:-false}
+      - STABILIZATION_TOOL_NAMES=${STABILIZATION_TOOL_NAMES:-}
+      - SCAN_CUSTOM_TOOLS=${SCAN_CUSTOM_TOOLS:-}
     volumes:
       - ./projects:/app/projects:ro
       - ./scan-results:/app/scan-results

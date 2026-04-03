@@ -47,5 +47,7 @@ celery_app.conf.update(
 
 # Optional: Configure task routes
 celery_app.conf.task_routes = {
-    "app.tasks.scan_project": {"queue": "scans"},
+    "scanner.scan_project": {"queue": "scans"},
+    "scanner.health_check": {"queue": "scans"},
+    "app.tasks.process_scan_results": {"queue": "backend_tasks"},
 }

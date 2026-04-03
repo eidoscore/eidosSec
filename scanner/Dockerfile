@@ -49,6 +49,7 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
 COPY --from=tools /usr/local/bin/gitleaks /usr/local/bin/
 COPY --from=tools /usr/local/bin/trivy /usr/local/bin/
 COPY --from=tools /usr/local/bin/trufflehog /usr/local/bin/
+COPY --from=tools /usr/local/bin/nuclei /usr/local/bin/
 COPY --from=tools /usr/local/bin/gosec /usr/local/bin/
 COPY --from=tools /usr/local/bin/staticcheck /usr/local/bin/
 COPY --from=tools /usr/local/bin/codeql-home /usr/local/bin/codeql-home
@@ -56,12 +57,14 @@ COPY --from=tools /usr/local/bin/spotbugs-home /usr/local/bin/spotbugs-home
 COPY --from=tools /usr/local/bin/pmd-home /usr/local/bin/pmd-home
 COPY --from=tools /usr/local/bin/shellcheck /usr/local/bin/
 COPY --from=tools /usr/local/bin/kics-home /usr/local/bin/kics-home
+COPY --from=tools /usr/local/bin/zap-baseline.py /usr/local/bin/
+COPY --from=tools /usr/local/bin/zap_common.py /usr/local/bin/
 
 RUN ln -s /usr/local/bin/codeql-home/codeql /usr/local/bin/codeql && \
     ln -s /usr/local/bin/spotbugs-home/bin/spotbugs /usr/local/bin/spotbugs && \
     ln -s /usr/local/bin/pmd-home/bin/pmd /usr/local/bin/pmd && \
     ln -s /usr/local/bin/kics-home/kics /usr/local/bin/kics && \
-    chmod +x /usr/local/bin/gitleaks /usr/local/bin/trivy /usr/local/bin/trufflehog /usr/local/bin/gosec /usr/local/bin/codeql /usr/local/bin/staticcheck /usr/local/bin/spotbugs /usr/local/bin/pmd /usr/local/bin/shellcheck /usr/local/bin/kics
+    chmod +x /usr/local/bin/gitleaks /usr/local/bin/trivy /usr/local/bin/trufflehog /usr/local/bin/nuclei /usr/local/bin/gosec /usr/local/bin/codeql /usr/local/bin/staticcheck /usr/local/bin/spotbugs /usr/local/bin/pmd /usr/local/bin/shellcheck /usr/local/bin/kics /usr/local/bin/zap-baseline.py
 
 # Install Global NPM Packages (ESLint, Retire.js)
 RUN npm install -g eslint@8.56.0 \

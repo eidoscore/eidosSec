@@ -1,10 +1,11 @@
 """Scan orchestrator - coordinates execution of security tools"""
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 from datetime import datetime, timezone
 import redis
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,59 @@ from app.schemas import ScanResultSchema, FindingSchema, ToolResultSchema
 from app.services.license import LicenseVerifier
 
 class ScanOrchestrator:
-    def __init__(self, project_path: Path, scan_id: str, redis_url: str):
+    QUICK_PROFILE_TOOLS = {
+        "semgrep",
+        "bandit",
+        "gitleaks",
+        "trufflehog",
+        "trivy",
+        "eslint",
+        "phpstan",
+        "brakeman",
+        "safety",
+        "npm_audit",
+        "composer_audit",
+    }
+    DEEP_PROFILE_TOOLS = {
+        "semgrep",
+        "bandit",
+        "trufflehog",
+        "gitleaks",
+        "trivy",
+        "eslint",
+        "phpstan",
+        "brakeman",
+        "safety",
+        "npm_audit",
+        "composer_audit",
+        "zap",
+        "nuclei",
+        "cfn_nag",
+        "checkov",
+    }
+    DEFAULT_STABILIZATION_TOOLS = {
+        "codeql",
+        "gosec",
+        "staticcheck",
+        "spotbugs",
+        "pmd",
+        "shellcheck",
+        "retirejs",
+        "kics",
+    }
+
+    def __init__(self, project_path: Path, scan_id: str, redis_url: str, scan_mode: str = "quick"):
         self.project_path = project_path
         self.scan_id = scan_id
         self.redis_client = redis.from_url(redis_url)
         self.license_verifier = LicenseVerifier()
+        self.scan_mode = (scan_mode or "quick").lower()
+        if self.scan_mode not in {"quick", "deep", "custom"}:
+            logger.warning(f"[Scan {self.scan_id}] Unknown scan mode '{self.scan_mode}', fallback to quick")
+            self.scan_mode = "quick"
+        self.stabilization_enabled = self._is_flag_enabled(
+            os.getenv("ENABLE_STABILIZATION_TOOLS", "false")
+        )
         
         # Initialize detectors
         from app.detectors.language import LanguageDetector
@@ -73,24 +122,68 @@ class ScanOrchestrator:
             RetireJsWrapper(project_path),
             KicsWrapper(project_path),
         ]
+
+    def _is_flag_enabled(self, value: str) -> bool:
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _parse_tool_name_list(self, raw: str) -> Set[str]:
+        if not raw:
+            return set()
+        return {tool.strip() for tool in raw.split(",") if tool.strip()}
+
+    def _get_selected_tool_names(self) -> Set[str]:
+        all_tool_names = {tool.name for tool in self.all_tools}
+
+        if self.scan_mode == "quick":
+            selected = set(self.QUICK_PROFILE_TOOLS)
+        elif self.scan_mode == "deep":
+            selected = set(self.DEEP_PROFILE_TOOLS)
+        else:  # custom
+            custom_names = self._parse_tool_name_list(os.getenv("SCAN_CUSTOM_TOOLS", ""))
+            if custom_names:
+                selected = custom_names
+            else:
+                logger.warning(
+                    f"[Scan {self.scan_id}] custom mode without SCAN_CUSTOM_TOOLS, fallback to deep profile"
+                )
+                selected = set(self.DEEP_PROFILE_TOOLS)
+
+        if self.stabilization_enabled:
+            staged_names = self._parse_tool_name_list(os.getenv("STABILIZATION_TOOL_NAMES", ""))
+            if not staged_names:
+                staged_names = set(self.DEFAULT_STABILIZATION_TOOLS)
+            selected.update(staged_names)
+
+        return selected.intersection(all_tool_names)
     
     # ... (run_scan, _publish_progress, etc. unchanged) ...
 
     def _filter_tools(self, languages: List[str], framework: str) -> List:
         """
-        Filter tools based on detected languages AND license status
+        Filter tools based on detected languages AND license status AND availability
         """
         tools_to_run = []
+        selected_tool_names = self._get_selected_tool_names()
         license_status = self.license_verifier.verify()
         is_pro = license_status.get("plan") in ["pro", "enterprise"]
         
         for tool in self.all_tools:
-            # check availability first
+            # 0. Check profile selection and staged rollout controls
+            if tool.name not in selected_tool_names:
+                logger.debug(f"[Scan {self.scan_id}] Skipping {tool.name} (not in profile '{self.scan_mode}')")
+                continue
+
+            # 1. Check if tool is applicable for this project
             if not tool.should_run(languages, framework):
                 logger.debug(f"[Scan {self.scan_id}] Skipping {tool.name} (not applicable)")
                 continue
 
-            # check license requirement
+            # 2. Check if tool is installed/available
+            if not tool.is_available():
+                logger.warning(f"[Scan {self.scan_id}] Skipping {tool.name} (binary not found in PATH)")
+                continue
+
+            # 3. Check license requirement
             if tool.requires_license and not is_pro:
                 logger.info(f"[Scan {self.scan_id}] Skipping {tool.name} (requires PRO license)")
                 continue
@@ -204,6 +297,8 @@ class ScanOrchestrator:
                 metadata={
                     "languages": languages,
                     "framework": framework,
+                    "scan_mode": self.scan_mode,
+                    "stabilization_enabled": self.stabilization_enabled,
                     "tools_total": len(self.all_tools),
                     "tools_run": len(tools_executed),
                     "original_findings_count": len(all_findings),

@@ -22,7 +22,23 @@ class CheckovWrapper(ToolWrapper):
             "--compact"
         ]
     
-    def should_run(self, languages: List[str], framework: Optional[str]) -> bool:
+    def get_version(self) -> str:
+        """Get checkov version"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["checkov", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return "unknown"
+        except Exception:
+            return "not found"
+    
+    def should_run(self, languages: List[str], framework: Optional[str] = None) -> bool:
         """Run if IaC files are detected"""
         # Check for common IaC file patterns
         iac_patterns = [
@@ -51,6 +67,16 @@ class CheckovWrapper(ToolWrapper):
         
         return False
     
+    def execute(self) -> List[FindingSchema]:
+        """Execute Checkov and return findings"""
+        try:
+            output = self.execute_command(self.command)
+            return self.parse_output(output)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Checkov execution failed: {e}")
+            return []
+
     def parse_output(self, output: str) -> List[FindingSchema]:
         """Parse Checkov JSON output to findings"""
         findings = []
